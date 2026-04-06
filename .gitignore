@@ -1,0 +1,9 @@
+backups/
+VPS_wg0-server/
+ssh-config
+*.age
+*.key
+*.pem
+*.pub.tmp
+.direnv/
+result
