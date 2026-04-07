@@ -1,9 +1,16 @@
 backups/
 VPS_wg0-server/
 ssh-config
+hosts/*/secrets.yaml
+hosts/*/secrets.json
+hosts/*/secrets.enc.yaml.dec
 *.age
 *.key
 *.pem
 *.pub.tmp
 .direnv/
+.tools/
+local-secrets/
+__pycache__/
+*.pyc
 result

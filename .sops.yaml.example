@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: hosts/theau-vps/secrets\.enc\.yaml$
+    age:
+      - age1replace_this_with_your_real_recipient

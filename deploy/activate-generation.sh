@@ -1,0 +1,246 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: activate-theau-vps-generation --secrets-json /path/to/secrets.json
+EOF
+}
+
+SECRETS_JSON=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --secrets-json)
+      SECRETS_JSON="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ -z "$SECRETS_JSON" || ! -f "$SECRETS_JSON" ]]; then
+  echo "A decrypted secrets JSON file is required." >&2
+  exit 1
+fi
+
+BUNDLE_ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+HOST_SPEC="$BUNDLE_ROOT/share/theau-vps/host-spec.json"
+PUBLIC_PEERS="$BUNDLE_ROOT/share/theau-vps/public-peers.json"
+export BUNDLE_ROOT HOST_SPEC PUBLIC_PEERS SECRETS_JSON
+
+TARGET_USER="$(python3 - <<'PY'
+import json, os
+print(json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))["adminUser"])
+PY
+)"
+TARGET_HOME="$(python3 - <<'PY'
+import json, os
+print(json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))["adminUserHome"])
+PY
+)"
+TARGET_HOSTNAME="$(python3 - <<'PY'
+import json, os
+print(json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))["hostname"])
+PY
+)"
+TARGET_TIMEZONE="$(python3 - <<'PY'
+import json, os
+print(json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))["timezone"])
+PY
+)"
+DOMAIN="$(python3 - <<'PY'
+import json, os
+print(json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))["domain"])
+PY
+)"
+
+install -d -m 0755 /etc/theau-vps /etc/theau-vps/nginx /etc/theau-vps/nginx/sites-enabled /etc/wireguard
+install -d -m 0755 /var/lib/theau-vps /var/lib/theau-vps/acme-challenge /var/lib/wgdashboard /var/lib/wgdashboard/db /var/lib/wgdashboard/log /var/lib/wgdashboard/plugins
+install -d -m 0755 /var/log/theau-vps/nginx /var/cache/theau-vps/nginx /opt/theau-vps/state
+
+python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+bundle_root = Path(os.environ["BUNDLE_ROOT"])
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+secrets = json.load(open(os.environ["SECRETS_JSON"], "r", encoding="utf-8"))
+public_peers = json.load(open(os.environ["PUBLIC_PEERS"], "r", encoding="utf-8"))
+
+keys = list(host["ssh"]["stableAdminAuthorizedKeys"])
+keys.extend(secrets.get("ssh", {}).get("deployAuthorizedKeys", []))
+
+auth_keys_path = Path(host["adminUserHome"]) / ".ssh" / "authorized_keys"
+auth_keys_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+auth_keys_path.write_text("\n".join(keys) + "\n", encoding="utf-8")
+auth_keys_path.chmod(0o600)
+
+peer_lookup = {
+    entry["publicKey"]: entry
+    for entry in secrets["wireguard"]["peers"]
+}
+
+wg_conf_lines = [
+    "[Interface]",
+    f"PrivateKey = {secrets['wireguard']['serverPrivateKey']}",
+    f"Address = {host['wireguard']['address']}",
+    f"ListenPort = {host['wireguard']['listenPort']}",
+    "",
+]
+
+for peer in public_peers:
+    secret_peer = peer_lookup[peer["publicKey"]]
+    wg_conf_lines.extend(
+        [
+            f"# Name = {peer['name']}",
+            "[Peer]",
+            f"PublicKey = {peer['publicKey']}",
+            f"PresharedKey = {secret_peer['presharedKey']}",
+            f"AllowedIPs = {', '.join(peer['allowedIPs'])}",
+            "",
+        ]
+    )
+
+Path("/etc/wireguard/wg0.conf").write_text("\n".join(wg_conf_lines).rstrip() + "\n", encoding="utf-8")
+Path("/etc/wireguard/wg0.conf").chmod(0o600)
+
+template = (bundle_root / "share/theau-vps/wg-dashboard.ini.template").read_text(encoding="utf-8")
+template = template.replace("@WGDASHBOARD_PASSWORD_HASH@", secrets["wgDashboard"]["adminPasswordHash"])
+template = template.replace("@WGDASHBOARD_TOTP_KEY@", secrets["wgDashboard"]["totpKey"])
+Path("/var/lib/wgdashboard/wg-dashboard.ini").write_text(template, encoding="utf-8")
+Path("/var/lib/wgdashboard/wg-dashboard.ini").chmod(0o600)
+
+https_conf = bundle_root / "share/theau-vps/nginx/site-https.conf"
+http_conf = bundle_root / "share/theau-vps/nginx/site-http.conf"
+cert_path = Path(f"/etc/letsencrypt/live/{host['domain']}/fullchain.pem")
+selected = https_conf if cert_path.exists() else http_conf
+Path("/etc/theau-vps/nginx/sites-enabled/theau-vps.conf").write_text(selected.read_text(encoding="utf-8"), encoding="utf-8")
+PY
+
+cp "$BUNDLE_ROOT/share/theau-vps/ssh/60-theau-vps.conf" /etc/ssh/sshd_config.d/60-theau-vps.conf
+cp "$BUNDLE_ROOT/share/theau-vps/sysctl.conf" /etc/sysctl.d/90-theau-vps.conf
+cp "$BUNDLE_ROOT/share/theau-vps/nftables.conf" /etc/theau-vps/nftables.conf
+cp "$BUNDLE_ROOT/share/theau-vps/nginx/nginx.conf" /etc/theau-vps/nginx/nginx.conf
+
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-firewall.service" /etc/systemd/system/theau-vps-firewall.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wireguard.service" /etc/systemd/system/theau-vps-wireguard.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-nginx.service" /etc/systemd/system/theau-vps-nginx.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wgdashboard.service" /etc/systemd/system/theau-vps-wgdashboard.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
+
+chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.ssh"
+hostnamectl set-hostname "$TARGET_HOSTNAME"
+timedatectl set-timezone "$TARGET_TIMEZONE"
+
+python3 - <<'PY'
+from pathlib import Path
+
+hosts_path = Path("/etc/hosts")
+hostname = Path("/etc/hostname").read_text(encoding="utf-8").strip()
+lines = hosts_path.read_text(encoding="utf-8").splitlines()
+updated = []
+replaced = False
+
+for line in lines:
+    if line.strip().startswith("127.0.1.1"):
+        if not replaced:
+            updated.append(f"127.0.1.1\t{hostname}")
+            replaced = True
+        continue
+    updated.append(line)
+
+if not replaced:
+    updated.append(f"127.0.1.1\t{hostname}")
+
+hosts_path.write_text("\n".join(updated).rstrip() + "\n", encoding="utf-8")
+PY
+
+sysctl --system >/dev/null
+/usr/sbin/sshd -t
+systemctl daemon-reload
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service >/dev/null || true
+systemctl restart ssh
+systemctl restart theau-vps-firewall.service
+systemctl restart theau-vps-wireguard.service
+systemctl restart theau-vps-nginx.service
+systemctl restart theau-vps-iperf3.service
+systemctl restart theau-vps-wgdashboard.service
+systemctl restart theau-vps-certbot-renew.timer
+
+python3 - <<'PY'
+import json
+import os
+import sqlite3
+import time
+from pathlib import Path
+
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+secrets = json.load(open(os.environ["SECRETS_JSON"], "r", encoding="utf-8"))
+public_peers = json.load(open(os.environ["PUBLIC_PEERS"], "r", encoding="utf-8"))
+db_path = Path("/var/lib/wgdashboard/db/wgdashboard.db")
+
+for _ in range(30):
+    if db_path.exists():
+        break
+    time.sleep(1)
+
+if not db_path.exists():
+    raise SystemExit("WGDashboard database was not created after service start")
+
+peer_lookup = {entry["publicKey"]: entry for entry in secrets["wireguard"]["peers"]}
+conn = sqlite3.connect(db_path)
+conn.execute('CREATE TABLE IF NOT EXISTS "DashboardAPIKeys" ("Key" TEXT PRIMARY KEY, "CreatedAt" DATETIME, "ExpiredAt" DATETIME)')
+
+for peer in public_peers:
+    secret_peer = peer_lookup[peer["publicKey"]]
+    conn.execute(
+        '''
+        INSERT INTO "wg0" (
+          id, private_key, DNS, endpoint_allowed_ip, name, total_receive, total_sent, total_data,
+          endpoint, status, latest_handshake, allowed_ip, cumu_receive, cumu_sent, cumu_data,
+          mtu, keepalive, remote_endpoint, preshared_key
+        ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 'N/A', 'stopped', 'N/A', ?, 0, 0, 0, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          private_key = excluded.private_key,
+          DNS = excluded.DNS,
+          endpoint_allowed_ip = excluded.endpoint_allowed_ip,
+          name = excluded.name,
+          allowed_ip = excluded.allowed_ip,
+          mtu = excluded.mtu,
+          keepalive = excluded.keepalive,
+          remote_endpoint = excluded.remote_endpoint,
+          preshared_key = excluded.preshared_key
+        ''',
+        (
+            peer["publicKey"],
+            secret_peer["privateKey"],
+            host["wireguard"]["peerDefaultDns"],
+            ", ".join(host["wireguard"]["peerEndpointAllowedIps"]),
+            peer["name"],
+            ", ".join(peer["allowedIPs"]),
+            host["wireguard"]["peerMtu"],
+            host["wireguard"]["peerPersistentKeepalive"],
+            host["domain"],
+            secret_peer["presharedKey"],
+        ),
+    )
+
+conn.commit()
+conn.close()
+PY
+
+systemctl restart theau-vps-wgdashboard.service
+
+echo "Activation completed for $DOMAIN"
