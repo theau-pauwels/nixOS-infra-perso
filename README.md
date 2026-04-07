@@ -220,6 +220,14 @@ Files that must stay private:
 - `local-secrets/theau-vps-wgdashboard-bootstrap.txt`
 - any local file containing `DUCKDNS_TOKEN`
 
+Useful local hardening and backup commands:
+
+```bash
+cd /home/theau/Documents/vscode/NixOS-migration
+./scripts/harden-local-secrets.sh
+./scripts/build-local-secret-vault.sh
+```
+
 ## Jellyfin VM seedbox
 
 The Jellyfin VM stack lives on `jellyfin_kot` under `/opt/seedbox`.

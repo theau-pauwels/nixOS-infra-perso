@@ -61,3 +61,23 @@ cd /home/theau/Documents/vscode/NixOS-migration
   hosts/theau-vps/secrets.yaml > hosts/theau-vps/secrets.enc.yaml
 rm -f hosts/theau-vps/secrets.yaml
 ```
+
+Harden local permissions for ignored cleartext secrets:
+
+```bash
+cd /home/theau/Documents/vscode/NixOS-migration
+./scripts/harden-local-secrets.sh
+```
+
+Create a passphrase-encrypted backup vault for local cleartext material:
+
+```bash
+cd /home/theau/Documents/vscode/NixOS-migration
+./scripts/build-local-secret-vault.sh
+```
+
+This vault is designed to capture:
+
+- `~/.config/sops/age/keys.txt`
+- files stored directly under `local-secrets/`
+- an optional ignored `local-secrets/theau-vps-ops.env` file if you decide to keep operational secrets there temporarily
