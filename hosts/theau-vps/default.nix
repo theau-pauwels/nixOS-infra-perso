@@ -1,3 +1,6 @@
+let
+  sshPublicKeyInventory = builtins.fromJSON (builtins.readFile ./ssh-public-keys.json);
+in
 {
   hostId = "theau-vps";
   targetHost = "theau@82.165.20.195";
@@ -13,9 +16,8 @@
 
   ssh = {
     port = 22;
-    stableAdminAuthorizedKeys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKbbEgxgAKV7v3E0gbiMRJB5Ago1onGT953i8fz7xuNJ VPS-IONOS"
-    ];
+    publicKeyInventory = sshPublicKeyInventory;
+    managedAuthorizedKeys = map (entry: entry.publicKey) sshPublicKeyInventory;
   };
 
   firewall = {

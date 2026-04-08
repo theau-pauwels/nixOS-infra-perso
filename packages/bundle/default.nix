@@ -10,8 +10,6 @@ let
   udpPorts = lib.concatMapStringsSep ", " toString hostSpec.firewall.udpPorts;
   peerEndpointAllowedIps = lib.concatStringsSep ", " hostSpec.wireguard.peerEndpointAllowedIps;
   publicPeerJson = builtins.toJSON hostSpec.wireguard.peers;
-  stableAdminKeys = lib.concatStringsSep "\n" hostSpec.ssh.stableAdminAuthorizedKeys;
-
   sshdConfig = ''
     Port ${toString hostSpec.ssh.port}
     PermitRootLogin no
@@ -407,8 +405,8 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${publicPeerJson}
   EOF
 
-  cat > "$out/share/theau-vps/ssh/stable-admin-authorized-keys" <<'EOF'
-  ${stableAdminKeys}
+  cat > "$out/share/theau-vps/ssh/public-key-inventory.json" <<'EOF'
+  ${builtins.toJSON hostSpec.ssh.publicKeyInventory}
   EOF
 
   cat > "$out/share/theau-vps/ssh/60-theau-vps.conf" <<'EOF'

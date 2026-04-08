@@ -86,8 +86,13 @@ host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 secrets = json.load(open(os.environ["SECRETS_JSON"], "r", encoding="utf-8"))
 public_peers = json.load(open(os.environ["PUBLIC_PEERS"], "r", encoding="utf-8"))
 
-keys = list(host["ssh"]["stableAdminAuthorizedKeys"])
+keys = list(host["ssh"].get("managedAuthorizedKeys", []))
 keys.extend(secrets.get("ssh", {}).get("deployAuthorizedKeys", []))
+keys = list(dict.fromkeys(keys))
+
+inventory_path = Path("/etc/theau-vps/ssh-public-keys.json")
+inventory_path.write_text(json.dumps(host["ssh"].get("publicKeyInventory", []), indent=2) + "\n", encoding="utf-8")
+inventory_path.chmod(0o644)
 
 auth_keys_path = Path(host["adminUserHome"]) / ".ssh" / "authorized_keys"
 auth_keys_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)

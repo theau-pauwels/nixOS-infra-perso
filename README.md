@@ -234,6 +234,51 @@ Retrieve the current public key:
 ssh IONOS-VPS2-DEPLOY 'sudo cat /var/lib/rustdesk-server/id_ed25519.pub'
 ```
 
+## SSH public key inventory
+
+Trusted user public keys are versioned per host in:
+
+- [`hosts/theau-vps/ssh-public-keys.json`](/home/theau/Documents/vscode/NixOS-migration/hosts/theau-vps/ssh-public-keys.json)
+
+Rotatable deployment automation keys stay encrypted in:
+
+- [`hosts/theau-vps/secrets.enc.yaml`](/home/theau/Documents/vscode/NixOS-migration/hosts/theau-vps/secrets.enc.yaml)
+
+Register or rotate a trusted machine key:
+
+```bash
+cd /home/theau/Documents/vscode/NixOS-migration
+./scripts/register-ssh-public-key.py \
+  --host-id theau-vps \
+  --id theau-desktop \
+  --file ~/.ssh/id_ed25519_desktop.pub \
+  --description "Desktop SSH key" \
+  --role admin
+```
+
+Redeploy after updating the inventory:
+
+```bash
+cd /home/theau/Documents/vscode/NixOS-migration
+nix build .#theau-vps-bundle
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+./deploy/push-generation.sh
+```
+
+Inspect the deployed inventory and authorized keys on the VPS:
+
+```bash
+ssh IONOS-VPS2-DEPLOY 'sudo cat /etc/theau-vps/ssh-public-keys.json'
+ssh IONOS-VPS2-DEPLOY 'sudo cat /home/theau/.ssh/authorized_keys'
+```
+
+Safety model:
+
+- keep one stable break-glass admin key in the inventory
+- rotate deployment keys through `hosts/theau-vps/secrets.enc.yaml`
+- never sync private keys through the VPS
+- if one machine is compromised, remove only its public key entry and redeploy
+
 ## Secrets workflow
 
 Decrypt the host secrets:

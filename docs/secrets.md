@@ -31,6 +31,10 @@ The encrypted secrets currently contain:
 - WGDashboard admin password hash
 - WGDashboard TOTP seed
 
+Trusted user SSH public keys do not need encryption. They live in:
+
+- `hosts/theau-vps/ssh-public-keys.json`
+
 ## Local-only cleartext material
 
 These files must not be committed:
