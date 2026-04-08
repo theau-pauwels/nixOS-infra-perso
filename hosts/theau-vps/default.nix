@@ -24,8 +24,14 @@
       80
       443
       5201
+      21115
+      21116
+      21117
     ];
-    udpPorts = [ 51820 ];
+    udpPorts = [
+      51820
+      21116
+    ];
   };
 
   wireguard = {
@@ -53,5 +59,15 @@
   iperf3 = {
     enable = true;
     port = 5201;
+  };
+
+  rustdesk = {
+    enable = true;
+    user = "rustdesk-server";
+    dataDir = "/var/lib/rustdesk-server";
+    publicHost = "theau-vps.duckdns.org";
+    natTestPort = 21115;
+    rendezvousPort = 21116;
+    relayPort = 21117;
   };
 }

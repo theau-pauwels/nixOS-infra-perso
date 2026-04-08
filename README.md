@@ -31,6 +31,7 @@ Personal infrastructure repository for the Ubuntu 24.04 + Nix deployment target.
 
 - native WireGuard via `wg-quick`
 - WGDashboard behind local Gunicorn on `127.0.0.1:10086`
+- RustDesk Server OSS with `hbbs` and `hbbr`
 - Nginx reverse proxy on `80` and later `443`
 - nftables firewall
 - iperf3
@@ -116,6 +117,7 @@ ssh IONOS-VPS2-DEPLOY 'hostnamectl --static; timedatectl show -p Timezone --valu
 ssh IONOS-VPS2-DEPLOY 'curl -fsSI -H "Host: theau-vps.duckdns.org" http://127.0.0.1/'
 ssh IONOS-VPS2-DEPLOY 'curl -fsS http://127.0.0.1:10086/ >/tmp/wgdashboard.html && head -n 5 /tmp/wgdashboard.html'
 ssh IONOS-VPS2-DEPLOY 'sudo awk '\''/^ListenPort = /{print} /^# Name = /{count++; print} END{print "PEER_COUNT=" count}'\'' /etc/wireguard/wg0.conf'
+ssh IONOS-VPS2-DEPLOY 'systemctl is-active theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service'
 ```
 
 ## Rollback
@@ -204,6 +206,34 @@ Current production status:
 - Let's Encrypt is active for `theau-vps.duckdns.org`
 - the current certificate expires on `2026-07-05`
 
+## RustDesk OSS
+
+RustDesk Server OSS runs directly on `IONOS-VPS2` with a persistent keypair in `/var/lib/rustdesk-server`.
+
+Required public ports:
+
+- `21115/tcp`
+- `21116/tcp`
+- `21116/udp`
+- `21117/tcp`
+
+Intentionally not exposed publicly:
+
+- `21118/tcp`
+- `21119/tcp`
+
+Client configuration:
+
+- `ID Server`: `theau-vps.duckdns.org`
+- `Relay Server`: `theau-vps.duckdns.org`
+- `Key`: the content of `/var/lib/rustdesk-server/id_ed25519.pub`
+
+Retrieve the current public key:
+
+```bash
+ssh IONOS-VPS2-DEPLOY 'sudo cat /var/lib/rustdesk-server/id_ed25519.pub'
+```
+
 ## Secrets workflow
 
 Decrypt the host secrets:
@@ -263,6 +293,9 @@ ssh jellyfin_kot 'sudo sed -i "s/WIREGUARD_ENDPOINT_IP=82\\.165\\.20\\.195/WIREG
 - DuckDNS now points to the new VPS at `82.165.20.195`
 - HTTP returns `301` to HTTPS
 - Jellyfin VM `gluetun` and `qbittorrent` now use the new WireGuard endpoint on `82.165.20.195`
+- RustDesk OSS now runs on `IONOS-VPS2` with only the necessary public ports opened in `nftables`: `21115/tcp`, `21116/tcp+udp`, and `21117/tcp`
+- `iperf3` remains exposed on `5201/tcp`
+- RustDesk websocket ports `21118/tcp` and `21119/tcp` are intentionally listening locally but blocked by the firewall
 - the old VPS remains a manual rollback host, but not via the old DuckDNS alias
 - to reach the old VPS after cutover, use its fixed IP directly
 

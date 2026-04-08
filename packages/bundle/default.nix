@@ -344,6 +344,50 @@ let
     [Install]
     WantedBy=multi-user.target
   '';
+
+  rustdeskHbbsUnit = ''
+    [Unit]
+    Description=theau-vps RustDesk hbbs rendezvous server
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    PermissionsStartOnly=true
+    User=${hostSpec.rustdesk.user}
+    Group=${hostSpec.rustdesk.user}
+    WorkingDirectory=${hostSpec.rustdesk.dataDir}
+    ExecStartPre=${pkgs.bash}/bin/bash -lc '${pkgs.coreutils}/bin/install -d -m 0750 -o ${hostSpec.rustdesk.user} -g ${hostSpec.rustdesk.user} ${hostSpec.rustdesk.dataDir}; if [[ ! -s ${hostSpec.rustdesk.dataDir}/id_ed25519 || ! -s ${hostSpec.rustdesk.dataDir}/id_ed25519.pub ]] || ! ${pkgs.rustdesk-server}/bin/rustdesk-utils validatekeypair "$(${pkgs.coreutils}/bin/cat ${hostSpec.rustdesk.dataDir}/id_ed25519.pub 2>/dev/null || true)" "$(${pkgs.coreutils}/bin/cat ${hostSpec.rustdesk.dataDir}/id_ed25519 2>/dev/null || true)" >/dev/null 2>&1; then key_output="$(${pkgs.rustdesk-server}/bin/rustdesk-utils genkeypair)"; public_key="$(echo "$key_output" | ${pkgs.gnused}/bin/sed -n "s/^Public Key:[[:space:]]*//p")"; secret_key="$(echo "$key_output" | ${pkgs.gnused}/bin/sed -n "s/^Secret Key:[[:space:]]*//p")"; echo "$secret_key" > ${hostSpec.rustdesk.dataDir}/id_ed25519; echo "$public_key" > ${hostSpec.rustdesk.dataDir}/id_ed25519.pub; fi; ${pkgs.coreutils}/bin/chown ${hostSpec.rustdesk.user}:${hostSpec.rustdesk.user} ${hostSpec.rustdesk.dataDir}/id_ed25519 ${hostSpec.rustdesk.dataDir}/id_ed25519.pub; ${pkgs.coreutils}/bin/chmod 600 ${hostSpec.rustdesk.dataDir}/id_ed25519; ${pkgs.coreutils}/bin/chmod 644 ${hostSpec.rustdesk.dataDir}/id_ed25519.pub'
+    ExecStart=${pkgs.rustdesk-server}/bin/hbbs -p ${toString hostSpec.rustdesk.rendezvousPort} -r ${hostSpec.rustdesk.publicHost}:${toString hostSpec.rustdesk.relayPort}
+    Restart=on-failure
+    RestartSec=2
+    LimitNOFILE=1048576
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  rustdeskHbbrUnit = ''
+    [Unit]
+    Description=theau-vps RustDesk hbbr relay server
+    After=network-online.target theau-vps-rustdesk-hbbs.service
+    Wants=network-online.target theau-vps-rustdesk-hbbs.service
+
+    [Service]
+    Type=simple
+    PermissionsStartOnly=true
+    User=${hostSpec.rustdesk.user}
+    Group=${hostSpec.rustdesk.user}
+    WorkingDirectory=${hostSpec.rustdesk.dataDir}
+    ExecStartPre=${pkgs.bash}/bin/bash -lc '${pkgs.coreutils}/bin/install -d -m 0750 -o ${hostSpec.rustdesk.user} -g ${hostSpec.rustdesk.user} ${hostSpec.rustdesk.dataDir}; if [[ ! -s ${hostSpec.rustdesk.dataDir}/id_ed25519 || ! -s ${hostSpec.rustdesk.dataDir}/id_ed25519.pub ]] || ! ${pkgs.rustdesk-server}/bin/rustdesk-utils validatekeypair "$(${pkgs.coreutils}/bin/cat ${hostSpec.rustdesk.dataDir}/id_ed25519.pub 2>/dev/null || true)" "$(${pkgs.coreutils}/bin/cat ${hostSpec.rustdesk.dataDir}/id_ed25519 2>/dev/null || true)" >/dev/null 2>&1; then key_output="$(${pkgs.rustdesk-server}/bin/rustdesk-utils genkeypair)"; public_key="$(echo "$key_output" | ${pkgs.gnused}/bin/sed -n "s/^Public Key:[[:space:]]*//p")"; secret_key="$(echo "$key_output" | ${pkgs.gnused}/bin/sed -n "s/^Secret Key:[[:space:]]*//p")"; echo "$secret_key" > ${hostSpec.rustdesk.dataDir}/id_ed25519; echo "$public_key" > ${hostSpec.rustdesk.dataDir}/id_ed25519.pub; fi; ${pkgs.coreutils}/bin/chown ${hostSpec.rustdesk.user}:${hostSpec.rustdesk.user} ${hostSpec.rustdesk.dataDir}/id_ed25519 ${hostSpec.rustdesk.dataDir}/id_ed25519.pub; ${pkgs.coreutils}/bin/chmod 600 ${hostSpec.rustdesk.dataDir}/id_ed25519; ${pkgs.coreutils}/bin/chmod 644 ${hostSpec.rustdesk.dataDir}/id_ed25519.pub'
+    ExecStart=${pkgs.rustdesk-server}/bin/hbbr -p ${toString hostSpec.rustdesk.relayPort}
+    Restart=on-failure
+    RestartSec=2
+    LimitNOFILE=1048576
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
 in
 pkgs.runCommand "theau-vps-bundle" { } ''
   mkdir -p "$out/bin" "$out/libexec" "$out/share/theau-vps"
@@ -423,6 +467,14 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${iperf3Unit}
   EOF
 
+  cat > "$out/share/theau-vps/systemd/theau-vps-rustdesk-hbbs.service" <<'EOF'
+  ${rustdeskHbbsUnit}
+  EOF
+
+  cat > "$out/share/theau-vps/systemd/theau-vps-rustdesk-hbbr.service" <<'EOF'
+  ${rustdeskHbbrUnit}
+  EOF
+
   ln -s ${wgdashboard} "$out/share/theau-vps/wgdashboard-package"
   ln -s ${pkgs.nginx} "$out/share/theau-vps/nginx-package"
   ln -s ${pkgs.certbot} "$out/share/theau-vps/certbot-package"
@@ -436,4 +488,6 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ln -s ${pkgs.coreutils} "$out/share/theau-vps/coreutils-package"
   ln -s ${pkgs.procps} "$out/share/theau-vps/procps-package"
   ln -s ${pkgs.bash} "$out/share/theau-vps/bash-package"
+  ln -s ${pkgs.gnused} "$out/share/theau-vps/gnused-package"
+  ln -s ${pkgs.rustdesk-server} "$out/share/theau-vps/rustdesk-server-package"
 ''

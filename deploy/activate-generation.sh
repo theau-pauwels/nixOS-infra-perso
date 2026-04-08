@@ -66,6 +66,16 @@ install -d -m 0755 /etc/theau-vps /etc/theau-vps/nginx /etc/theau-vps/nginx/site
 install -d -m 0755 /var/lib/theau-vps /var/lib/theau-vps/acme-challenge /var/lib/wgdashboard /var/lib/wgdashboard/db /var/lib/wgdashboard/log /var/lib/wgdashboard/plugins
 install -d -m 0755 /var/log/theau-vps/nginx /var/cache/theau-vps/nginx /opt/theau-vps/state
 
+if ! getent group rustdesk-server >/dev/null; then
+  groupadd --system rustdesk-server
+fi
+
+if ! id -u rustdesk-server >/dev/null 2>&1; then
+  useradd --system --gid rustdesk-server --home-dir /var/lib/rustdesk-server --shell /usr/sbin/nologin --no-create-home rustdesk-server
+fi
+
+install -d -o rustdesk-server -g rustdesk-server -m 0750 /var/lib/rustdesk-server
+
 python3 - <<'PY'
 import json
 import os
@@ -138,6 +148,8 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wgdashboard.service" /etc/sys
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-rustdesk-hbbs.service" /etc/systemd/system/theau-vps-rustdesk-hbbs.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-rustdesk-hbbr.service" /etc/systemd/system/theau-vps-rustdesk-hbbr.service
 
 chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.ssh"
 hostnamectl set-hostname "$TARGET_HOSTNAME"
@@ -169,13 +181,15 @@ PY
 sysctl --system >/dev/null
 /usr/sbin/sshd -t
 systemctl daemon-reload
-systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service >/dev/null
-systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service >/dev/null || true
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
 systemctl restart theau-vps-nginx.service
 systemctl restart theau-vps-iperf3.service
+systemctl restart theau-vps-rustdesk-hbbs.service
+systemctl restart theau-vps-rustdesk-hbbr.service
 systemctl restart theau-vps-wgdashboard.service
 systemctl restart theau-vps-certbot-renew.timer
 
