@@ -1,5 +1,41 @@
 [
   {
+    "id": "gh-nixos-infra-perso",
+    "description": "Imported from ~/.ssh/gh_nixOS-infra-perso.pub",
+    "publicKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICYXaTCGbV0pI+w7+cX1cVpwjGEACaUSHFaQR5DT51rA github-deploy",
+    "roles": [
+      "admin",
+      "imported"
+    ]
+  },
+  {
+    "id": "gh-wordpress-pnhp",
+    "description": "Imported from ~/.ssh/gh_wordpress-PNHP.pub",
+    "publicKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILyeatfbnL9Zw4Yd1Hro6bJN8mgtBbJlGrb7yDwwbGT6 theau@ubuntu",
+    "roles": [
+      "admin",
+      "imported"
+    ]
+  },
+  {
+    "id": "id-rsa-ceci",
+    "description": "Imported from ~/.ssh/id_rsa.ceci.pub",
+    "publicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDkpoMGSrzGsME+G3kgelbujnNsvdlFZ3v3S+W5zIcy19fP1lcR6BO8bTemkiv1hExOc1/z7sR502MvZbb39mmDc8WitfCOxZlKaTWZ3PKrieZp4wlkEiLNoo/6wjMjOeyXp9d+kSdkObha93M6RBWAFXMc0DcGKyPm+SREh2qye9u3N8SciXBQk6IZ9yl2I7suHEHB5IbNfjcVrdb8gec+kH+d0vybi5c9q3wJtgcfTk1sSdGCFCecVs2/mowXcUO2YveNqzOPRu+2x/BejKfUVBa3kXqCLUeItdc1FR11r+NxoJTYjeA3cIzaBFEEPjotLPxCv4eef1GOec5czwpSzlhJFQTIV5IkdihlqR9sSjzM5BdaLhJr4L9epu5jt/g1QaY63KgxQfU+o/y01pndrvlQnvbNMTDIoZ15YgdHGguO5lhIoVAG8jcRNWENj9ARqfQmzhhVQ2yfTbcWyaH7Hw2MdearqML/kX7Ih8Y90LKU1JD6Rq2v2um89Ih9SD0= relog@ceci-relog.segi.ulg.ac.be",
+    "roles": [
+      "admin",
+      "imported"
+    ]
+  },
+  {
+    "id": "id-rsa-pnhp-o2switch",
+    "description": "Imported from ~/.ssh/id_rsa_PNHP-O2SWITCH.pub",
+    "publicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCbEQXqk2zwrZDUFkqnkZH9wBbXD2DMXFwfCboU1RshN6I1Q85O4K8CiBKiAd7tAOEkgY8D2xjF/bULvo4ml+TeORIAb3s+iIQPIEp0e17ze311n78IQ81OcB2IA9WLeAL7TGyc+PEJUWbsmmdRMA4xaMJVaYzBgdFYs1AtYdL59CPmqJKmv6PQ6G0/aJSTIP2u7AVjDQXdzXGg3yidf+5lA/8+ujTZz0p6pEGQaBfBtMzxK82R/+PDm4shbxiuUqY2P6YMrXeuGxQ8vqWCYYmEB9yQlJzQ8CCdDGTxpSNFa8eBklmjNrKkr9w3ELofVxWNo/lqYVHfN9LELyOU+rcL",
+    "roles": [
+      "admin",
+      "imported"
+    ]
+  },
+  {
     "id": "theau-admin-bootstrap",
     "description": "Stable break-glass admin key for theau-vps",
     "publicKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKbbEgxgAKV7v3E0gbiMRJB5Ago1onGT953i8fz7xuNJ VPS-IONOS",
