@@ -1,0 +1,2 @@
+- use headscale (hosted central on IONOS-VPS2) to have a site-2-site VPN that interconnects everything
+- connect Thulin and Roisin node to the site
