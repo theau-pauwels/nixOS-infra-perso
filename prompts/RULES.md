@@ -93,7 +93,10 @@ nix build .#theau-vps-bundle
 
 - Tracked encrypted secrets currently live at
   `hosts/theau-vps/secrets.enc.yaml`.
-- Cleartext secrets must remain ignored and local-only.
+- Cleartext secrets must remain ignored and local-only under `local-secrets/`.
+- If a cleartext copy of an encrypted secret is needed for editing or recovery,
+  keep it in `local-secrets/` with restrictive permissions. Do not keep
+  persistent cleartext secrets under `hosts/*/`.
 - Never commit:
   - `hosts/*/secrets.yaml`
   - `local-secrets/`
@@ -108,7 +111,7 @@ nix build .#theau-vps-bundle
   such as `hosts/theau-vps/ssh-public-keys.json` or public WireGuard peer keys.
 - Before any GitHub push, inspect the diff for accidental secret material.
 - Before any infrastructure push, confirm that the deployment uses encrypted
-  secrets and temporary decrypted files only.
+  secrets and local-only decrypted files from `local-secrets/` only.
 
 ## Infrastructure Push Rules
 

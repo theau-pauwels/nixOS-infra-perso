@@ -12,15 +12,17 @@ Keep deployable secrets encrypted in Git while avoiding cleartext material in th
 - tracked: `.sops.yaml.example`
 - ignored: `hosts/theau-vps/secrets.yaml`
 - ignored: `hosts/nas-kot/secrets.yaml`
+- ignored: `local-secrets/`
 - ignored: `local-secrets/theau-vps-wgdashboard-bootstrap.txt`
 - ignored: `~/.config/sops/age/keys.txt`
 
 ## Current flow
 
-1. create a temporary plaintext `hosts/theau-vps/secrets.yaml`
-2. encrypt it with `sops` into `hosts/theau-vps/secrets.enc.yaml`
-3. delete the plaintext file immediately
-4. deploy with `deploy/push-generation.sh`
+1. keep any cleartext editable copy under `local-secrets/`
+2. encrypt the relevant local cleartext file with `sops`
+3. write the encrypted output to `hosts/<host>/secrets.enc.yaml`
+4. keep `local-secrets/` ignored and permission-restricted
+5. deploy with the encrypted secrets workflow only
 
 ## Encrypted content
 
@@ -47,11 +49,17 @@ Trusted user SSH public keys do not need encryption. They live in:
 
 ## Local-only cleartext material
 
+Cleartext secrets that need to persist locally for editing, recovery, or
+bootstrap must live under `local-secrets/`. Do not keep persistent cleartext
+secret files under `hosts/*/`.
+
 These files must not be committed:
 
 - `~/.config/sops/age/keys.txt`
+- `local-secrets/`
 - `local-secrets/theau-vps-wgdashboard-bootstrap.txt`
 - any file containing a live `DUCKDNS_TOKEN`
+- `hosts/theau-vps/secrets.yaml`
 - `hosts/nas-kot/secrets.yaml`
 - any raw backup from `backups/`
 
@@ -73,8 +81,7 @@ cd /home/theau/Documents/vscode/NixOS-migration
   --filename-override hosts/theau-vps/secrets.enc.yaml \
   --input-type yaml \
   --output-type yaml \
-  hosts/theau-vps/secrets.yaml > hosts/theau-vps/secrets.enc.yaml
-rm -f hosts/theau-vps/secrets.yaml
+  local-secrets/theau-vps.secrets.yaml > hosts/theau-vps/secrets.enc.yaml
 ```
 
 Harden local permissions for ignored cleartext secrets:
