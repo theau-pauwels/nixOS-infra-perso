@@ -20,16 +20,84 @@ usable before filesystem overhead = about 16 TB
 RAIDZ2 is chosen because it can survive two disk failures. RAIDZ1/RAID5 is not
 appropriate for this size and disk count.
 
-## Manual Pool Creation
+## Boot and Data Layout
 
 Disk identifiers in `hosts/nas-kot/default.nix` are TODO placeholders. Before
-creating the pool, list real stable disk IDs:
+partitioning, list real stable disk IDs:
 
 ```bash
 ls -l /dev/disk/by-id/
 ```
 
-Manual creation procedure:
+The target layout is:
+
+| Disk | EFI | NixOS root | ZFS data |
+| --- | --- | --- | --- |
+| disk 1 | `NASBOOT1`, 1 GiB | RAID1 member, 30-50 GiB | RAIDZ2 member |
+| disk 2 | `NASBOOT2`, 1 GiB | RAID1 member, 30-50 GiB | RAIDZ2 member |
+| disk 3 | none | none | RAIDZ2 member |
+| disk 4 | none | none | RAIDZ2 member |
+| disk 5 | none | none | RAIDZ2 member |
+| disk 6 | none | none | RAIDZ2 member |
+
+NixOS root is an ext4 filesystem labeled `nixos-root` on a manually created
+mdadm RAID1 device. GRUB is installed to both boot disks using stable
+`/dev/disk/by-id` paths. The second EFI partition is mounted at `/boot-fallback`
+so it can be synchronized after bootloader updates.
+
+Example manual partitioning for the first two disks:
+
+```bash
+sgdisk --zap-all /dev/disk/by-id/TODO-nas-disk-1
+sgdisk --new=1:1MiB:+1GiB --typecode=1:EF00 --change-name=1:NASBOOT1 /dev/disk/by-id/TODO-nas-disk-1
+sgdisk --new=2:0:+50GiB --typecode=2:FD00 --change-name=2:nixos-root-a /dev/disk/by-id/TODO-nas-disk-1
+sgdisk --new=3:0:0 --typecode=3:BF01 --change-name=3:nas-zfs-a /dev/disk/by-id/TODO-nas-disk-1
+
+sgdisk --zap-all /dev/disk/by-id/TODO-nas-disk-2
+sgdisk --new=1:1MiB:+1GiB --typecode=1:EF00 --change-name=1:NASBOOT2 /dev/disk/by-id/TODO-nas-disk-2
+sgdisk --new=2:0:+50GiB --typecode=2:FD00 --change-name=2:nixos-root-b /dev/disk/by-id/TODO-nas-disk-2
+sgdisk --new=3:0:0 --typecode=3:BF01 --change-name=3:nas-zfs-b /dev/disk/by-id/TODO-nas-disk-2
+```
+
+Example manual partitioning for disks 3-6:
+
+```bash
+sgdisk --zap-all /dev/disk/by-id/TODO-nas-disk-3
+sgdisk --new=1:1MiB:0 --typecode=1:BF01 --change-name=1:nas-zfs-c /dev/disk/by-id/TODO-nas-disk-3
+```
+
+Repeat the same data-only layout for disks 4, 5, and 6.
+
+Format the EFI partitions and root mirror manually:
+
+```bash
+mkfs.vfat -F32 -n NASBOOT1 /dev/disk/by-id/TODO-nas-disk-1-part1
+mkfs.vfat -F32 -n NASBOOT2 /dev/disk/by-id/TODO-nas-disk-2-part1
+
+mdadm --create /dev/md/nixos-root --level=1 --raid-devices=2 \
+  /dev/disk/by-id/TODO-nas-disk-1-part2 \
+  /dev/disk/by-id/TODO-nas-disk-2-part2
+mkfs.ext4 -L nixos-root /dev/md/nixos-root
+```
+
+After creating the array, copy the output of this command into
+`boot.swraid.mdadmConf`:
+
+```bash
+mdadm --detail --scan
+```
+
+After each bootloader update, synchronize the fallback EFI partition:
+
+```bash
+rsync -a --delete /boot/ /boot-fallback/
+```
+
+## Manual Pool Creation
+
+Use the ZFS data partitions, not whole disks. The first two disks contribute
+their remaining space after EFI and root. The other four disks contribute their
+single data partition.
 
 ```bash
 zpool create \
@@ -40,12 +108,12 @@ zpool create \
   -O xattr=sa \
   -O mountpoint=none \
   nas raidz2 \
-  /dev/disk/by-id/TODO-nas-disk-1 \
-  /dev/disk/by-id/TODO-nas-disk-2 \
-  /dev/disk/by-id/TODO-nas-disk-3 \
-  /dev/disk/by-id/TODO-nas-disk-4 \
-  /dev/disk/by-id/TODO-nas-disk-5 \
-  /dev/disk/by-id/TODO-nas-disk-6
+  /dev/disk/by-id/TODO-nas-disk-1-zfs-part \
+  /dev/disk/by-id/TODO-nas-disk-2-zfs-part \
+  /dev/disk/by-id/TODO-nas-disk-3-zfs-part \
+  /dev/disk/by-id/TODO-nas-disk-4-zfs-part \
+  /dev/disk/by-id/TODO-nas-disk-5-zfs-part \
+  /dev/disk/by-id/TODO-nas-disk-6-zfs-part
 ```
 
 Datasets:

@@ -46,12 +46,12 @@
     pools.nas = {
       topology = "raidz2";
       devices = [
-        "/dev/disk/by-id/TODO-nas-disk-1"
-        "/dev/disk/by-id/TODO-nas-disk-2"
-        "/dev/disk/by-id/TODO-nas-disk-3"
-        "/dev/disk/by-id/TODO-nas-disk-4"
-        "/dev/disk/by-id/TODO-nas-disk-5"
-        "/dev/disk/by-id/TODO-nas-disk-6"
+        "/dev/disk/by-id/TODO-nas-disk-1-zfs-part"
+        "/dev/disk/by-id/TODO-nas-disk-2-zfs-part"
+        "/dev/disk/by-id/TODO-nas-disk-3-zfs-part"
+        "/dev/disk/by-id/TODO-nas-disk-4-zfs-part"
+        "/dev/disk/by-id/TODO-nas-disk-5-zfs-part"
+        "/dev/disk/by-id/TODO-nas-disk-6-zfs-part"
       ];
     };
   };
@@ -111,13 +111,45 @@
 
   personalInfra.observability.exporters.enable = false;
 
-  boot.growPartition = true;
-  boot.loader.grub.device = "/dev/sda";
+  boot.swraid = {
+    enable = true;
+    mdadmConf = ''
+      MAILADDR root
+      # TODO: replace with ARRAY lines from `mdadm --detail --scan` after
+      # manually creating the mirrored NixOS root device.
+    '';
+  };
 
-  # TODO: replace with the real NAS boot disk identifier before installation.
+  boot.loader.grub = {
+    efiSupport = true;
+    efiInstallAsRemovable = true;
+    devices = [
+      "/dev/disk/by-id/TODO-nas-disk-1"
+      "/dev/disk/by-id/TODO-nas-disk-2"
+    ];
+  };
+
   fileSystems."/" = {
-    device = "/dev/disk/by-label/nixos";
+    device = "/dev/disk/by-label/nixos-root";
     fsType = "ext4";
+  };
+
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-label/NASBOOT1";
+    fsType = "vfat";
+    options = [
+      "umask=0077"
+      "nofail"
+    ];
+  };
+
+  fileSystems."/boot-fallback" = {
+    device = "/dev/disk/by-label/NASBOOT2";
+    fsType = "vfat";
+    options = [
+      "umask=0077"
+      "nofail"
+    ];
   };
 
   system.stateVersion = "25.05";

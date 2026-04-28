@@ -26,7 +26,7 @@ in
             devices = lib.mkOption {
               type = lib.types.listOf lib.types.str;
               default = [ ];
-              description = "TODO disk IDs used by the manual zpool create procedure.";
+              description = "Stable by-id data partitions used by the manual zpool create procedure.";
             };
           };
         }
