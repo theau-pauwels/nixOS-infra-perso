@@ -39,6 +39,7 @@ public exposure is required.
 | Jellyfin | `jellyfin.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
 | Jellyseerr | `jellyseerr.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
 | Seedbox UI | `seedbox.theau-vps.duckdns.org` | SSO-protected | Authelia `super-admin` only |
+| NAS SMB/NFS/FileBrowser | Kot LAN/VPN only | private subnets only | local Unix/Samba groups, no public ingress |
 | Monitoring UI | future route | VPN-only | Authelia plus VPN |
 
 Headscale and the current WireGuard service have separate roles. WireGuard is

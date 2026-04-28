@@ -28,6 +28,7 @@ The target architecture is documented in:
 - [`docs/implementation/jellyfin-kot-seedbox.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/jellyfin-kot-seedbox.md)
 - [`docs/implementation/vps-headscale.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/vps-headscale.md)
 - [`docs/implementation/vps-caddy.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/vps-caddy.md)
+- [`docs/implementation/nas-kot-zfs.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/nas-kot-zfs.md)
 
 ## Production warning
 
@@ -44,7 +45,7 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 | Phase 2: Jellyfin Kot declarative | Complete | Adds initial Kot media NixOS host configs |
 | Phase 2.5: Kot media split and SSO | Complete | Splits Jellyfin, Seedbox, and Jellyseerr VMs; adds identity provider skeleton |
 | Phase 3: Headscale and Caddy | Complete | Enables native VPS Headscale, Caddy, LLDAP, and central Authelia authorization |
-| Phase 4: NAS ZFS | Not started | Future work |
+| Phase 4: NAS ZFS | Complete | Adds NAS Kot ZFS, LAN-only shares, Sanoid, Restic, and sops-nix secrets |
 | Phase 5: Mom edge | Not started | Future work |
 | Phase 6: Dad edge | Not started | Future work |
 | Phase 7: VPS NixOS native | Not started | Future work |

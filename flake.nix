@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     wgdashboard-src = {
       url = "github:WGDashboard/WGDashboard?ref=v4.3.2";
       flake = false;
@@ -15,6 +19,7 @@
       self,
       nixpkgs,
       flake-utils,
+      sops-nix,
       wgdashboard-src,
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -47,6 +52,7 @@
         seedboxKotTarball = mkHostTarball "seedbox-kot";
         jellyseerrKotTarball = mkHostTarball "jellyseerr-kot";
         vpsNativeTarball = mkHostTarball "vps";
+        nasKotTarball = mkHostTarball "nas-kot";
         kotMediaStackTarball = pkgs.runCommand "kot-media-stack.tar.gz" { } ''
           mkdir -p root
           ln -s ${jellyfinKotTarball} root/jellyfin-kot-system.tar.gz
@@ -69,6 +75,7 @@
           seedbox-kot = seedboxKotTarball;
           jellyseerr-kot = jellyseerrKotTarball;
           vps-native = vpsNativeTarball;
+          nas-kot = nasKotTarball;
           kot-media-stack = kotMediaStackTarball;
           default = theauVpsBundle;
         };
@@ -112,6 +119,13 @@
         system = "x86_64-linux";
         modules = [
           ./hosts/jellyseerr-kot
+        ];
+      };
+      nixosConfigurations.nas-kot = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          sops-nix.nixosModules.sops
+          ./hosts/nas-kot
         ];
       };
     };

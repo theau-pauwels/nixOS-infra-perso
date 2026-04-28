@@ -7,9 +7,11 @@ Keep deployable secrets encrypted in Git while avoiding cleartext material in th
 ## Current files
 
 - tracked: `hosts/theau-vps/secrets.enc.yaml`
+- tracked: `hosts/nas-kot/secrets.enc.yaml`
 - tracked: `.sops.yaml`
 - tracked: `.sops.yaml.example`
 - ignored: `hosts/theau-vps/secrets.yaml`
+- ignored: `hosts/nas-kot/secrets.yaml`
 - ignored: `local-secrets/theau-vps-wgdashboard-bootstrap.txt`
 - ignored: `~/.config/sops/age/keys.txt`
 
@@ -31,6 +33,14 @@ The encrypted secrets currently contain:
 - WGDashboard admin password hash
 - WGDashboard TOTP seed
 
+`hosts/nas-kot/secrets.enc.yaml` is managed by `sops-nix` and contains:
+
+- Restic repository password
+- Restic repository location
+
+The committed NAS file currently contains encrypted placeholder values only.
+Replace them before production.
+
 Trusted user SSH public keys do not need encryption. They live in:
 
 - `hosts/theau-vps/ssh-public-keys.json`
@@ -42,6 +52,7 @@ These files must not be committed:
 - `~/.config/sops/age/keys.txt`
 - `local-secrets/theau-vps-wgdashboard-bootstrap.txt`
 - any file containing a live `DUCKDNS_TOKEN`
+- `hosts/nas-kot/secrets.yaml`
 - any raw backup from `backups/`
 
 ## Useful commands
