@@ -33,29 +33,35 @@ The target layout is:
 
 | Disk | EFI | NixOS root | ZFS data |
 | --- | --- | --- | --- |
-| disk 1 | `NASBOOT1`, 1 GiB | RAID1 member, 30-50 GiB | RAIDZ2 member |
-| disk 2 | `NASBOOT2`, 1 GiB | RAID1 member, 30-50 GiB | RAIDZ2 member |
+| disk 1 | `NASBOOT1`, 1 GiB | RAID1 member, 30 GiB | RAIDZ2 member |
+| disk 2 | `NASBOOT2`, 1 GiB | RAID1 member, 30 GiB | RAIDZ2 member |
 | disk 3 | none | none | RAIDZ2 member |
 | disk 4 | none | none | RAIDZ2 member |
 | disk 5 | none | none | RAIDZ2 member |
 | disk 6 | none | none | RAIDZ2 member |
 
 NixOS root is an ext4 filesystem labeled `nixos-root` on a manually created
-mdadm RAID1 device. GRUB is installed to both boot disks using stable
+30 GiB mdadm RAID1 device. GRUB is installed to both boot disks using stable
 `/dev/disk/by-id` paths. The second EFI partition is mounted at `/boot-fallback`
 so it can be synchronized after bootloader updates.
+
+The ZFS pool uses the remaining space on all six disks. Because RAIDZ2 vdevs use
+the smallest member size, reserving 1 GiB EFI plus 30 GiB root on the first two
+disks leaves roughly 31 GiB unused on each of the four data-only disks. The
+effective capacity cost of the OS layout is therefore about 124 GiB before
+filesystem overhead.
 
 Example manual partitioning for the first two disks:
 
 ```bash
 sgdisk --zap-all /dev/disk/by-id/TODO-nas-disk-1
 sgdisk --new=1:1MiB:+1GiB --typecode=1:EF00 --change-name=1:NASBOOT1 /dev/disk/by-id/TODO-nas-disk-1
-sgdisk --new=2:0:+50GiB --typecode=2:FD00 --change-name=2:nixos-root-a /dev/disk/by-id/TODO-nas-disk-1
+sgdisk --new=2:0:+30GiB --typecode=2:FD00 --change-name=2:nixos-root-a /dev/disk/by-id/TODO-nas-disk-1
 sgdisk --new=3:0:0 --typecode=3:BF01 --change-name=3:nas-zfs-a /dev/disk/by-id/TODO-nas-disk-1
 
 sgdisk --zap-all /dev/disk/by-id/TODO-nas-disk-2
 sgdisk --new=1:1MiB:+1GiB --typecode=1:EF00 --change-name=1:NASBOOT2 /dev/disk/by-id/TODO-nas-disk-2
-sgdisk --new=2:0:+50GiB --typecode=2:FD00 --change-name=2:nixos-root-b /dev/disk/by-id/TODO-nas-disk-2
+sgdisk --new=2:0:+30GiB --typecode=2:FD00 --change-name=2:nixos-root-b /dev/disk/by-id/TODO-nas-disk-2
 sgdisk --new=3:0:0 --typecode=3:BF01 --change-name=3:nas-zfs-b /dev/disk/by-id/TODO-nas-disk-2
 ```
 
