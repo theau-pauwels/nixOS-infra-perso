@@ -1,6 +1,49 @@
 # nixOS-infra-perso
 
-Personal infrastructure repository for the Ubuntu 24.04 + Nix deployment target.
+Personal infrastructure repository for the current Ubuntu 24.04 + Nix VPS
+deployment target and the future multi-site declarative Nix infrastructure.
+
+## Current state summary
+
+The production path is still the legacy-compatible VPS bundle:
+
+- Nix builds `.#theau-vps-bundle` locally.
+- `deploy/push-generation.sh` copies the bundle to the Ubuntu VPS Nix store.
+- `deploy/activate-generation.sh` writes configs and systemd units on Ubuntu.
+- `/opt/theau-vps/current` points to the active generation.
+
+Do not treat the new NixOS skeleton modules as active production config yet.
+
+## Target architecture
+
+The target architecture is documented in:
+
+- [`docs/architecture.md`](/home/theau/Documents/vscode/NixOS-migration/docs/architecture.md)
+- [`docs/addressing.md`](/home/theau/Documents/vscode/NixOS-migration/docs/addressing.md)
+- [`docs/security-model.md`](/home/theau/Documents/vscode/NixOS-migration/docs/security-model.md)
+- [`docs/migration-plan.md`](/home/theau/Documents/vscode/NixOS-migration/docs/migration-plan.md)
+- [`docs/disaster-recovery.md`](/home/theau/Documents/vscode/NixOS-migration/docs/disaster-recovery.md)
+- [`docs/implementation/current-vps-bundle.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/current-vps-bundle.md)
+- [`docs/implementation/future-personal-ssh-access-platform.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/future-personal-ssh-access-platform.md)
+
+## Production warning
+
+The current VPS bundle is the legacy production path and must remain working
+until a later phase replaces it with a tested rollback plan. Do not run
+infrastructure deployment commands unless you intend to mutate the live VPS.
+
+## Migration phase status
+
+| Phase | Status | Notes |
+| --- | --- | --- |
+| Phase 0: preserve current VPS bundle | Complete | Current bundle documented and build verified |
+| Phase 1: docs and skeleton modules | Complete | Adds target docs, disabled modules, and future host skeletons |
+| Phase 2: Jellyfin Kot declarative | Not started | Future work |
+| Phase 3: Headscale and Caddy | Not started | Future work |
+| Phase 4: NAS ZFS | Not started | Future work |
+| Phase 5: Mom edge | Not started | Future work |
+| Phase 6: Dad edge | Not started | Future work |
+| Phase 7: VPS NixOS native | Not started | Future work |
 
 ## Target model
 
