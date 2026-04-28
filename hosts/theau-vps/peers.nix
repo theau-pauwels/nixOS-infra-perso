@@ -29,4 +29,15 @@
     publicKey = "Foo4gSN0shV6DUhXDjA3tUF0NK0tXU/U7RxL6MjloxM=";
     allowedIPs = [ "10.8.0.6/32" ];
   }
+  {
+    name = "mom-edge site gateway skeleton";
+    enabled = false;
+    # Placeholder public key. Replace with the real Mom edge public key before
+    # enabling this peer in the active VPS bundle.
+    publicKey = "/L0CT1WX66/Su2H2IH6mP530Ynbrc3rd5gex3IwAKS8=";
+    allowedIPs = [
+      "10.8.0.30/32"
+      "10.10.10.0/24"
+    ];
+  }
 ]

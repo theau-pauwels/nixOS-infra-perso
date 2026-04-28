@@ -8,6 +8,7 @@ Keep deployable secrets encrypted in Git while avoiding cleartext material in th
 
 - tracked: `hosts/theau-vps/secrets.enc.yaml`
 - tracked: `hosts/nas-kot/secrets.enc.yaml`
+- tracked: `hosts/mom-edge/secrets.enc.yaml`
 - tracked: `.sops.yaml`
 - tracked: `.sops.yaml.example`
 - ignored: `hosts/theau-vps/secrets.yaml`
@@ -41,6 +42,13 @@ The encrypted secrets currently contain:
 - Restic repository location
 
 The committed NAS file currently contains encrypted placeholder values only.
+Replace them before production.
+
+`hosts/mom-edge/secrets.enc.yaml` is managed by `sops-nix` and contains:
+
+- Mom site WireGuard private key
+
+The committed Mom file currently contains encrypted placeholder values only.
 Replace them before production.
 
 Trusted user SSH public keys do not need encryption. They live in:

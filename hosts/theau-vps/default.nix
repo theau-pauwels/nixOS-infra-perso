@@ -1,5 +1,6 @@
 let
   sshPublicKeyInventory = builtins.fromJSON (builtins.readFile ./ssh-public-keys.json);
+  wireguardPeers = import ./peers.nix;
 in
 {
   hostId = "theau-vps";
@@ -45,7 +46,8 @@ in
     peerEndpointAllowedIps = [ "0.0.0.0/0" ];
     peerMtu = 1420;
     peerPersistentKeepalive = 21;
-    peers = import ./peers.nix;
+    peers = builtins.filter (peer: peer.enabled or true) wireguardPeers;
+    peerSkeletons = builtins.filter (peer: !(peer.enabled or true)) wireguardPeers;
   };
 
   wgdashboard = {

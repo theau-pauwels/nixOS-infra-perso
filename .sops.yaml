@@ -5,3 +5,6 @@ creation_rules:
   - path_regex: hosts/nas-kot/secrets\.enc\.yaml$
     age:
       - age1c75r3vmlttna6qkw85s2yke6whtn50x5sqnv0cftm648mcm2xqgqyf2e5w
+  - path_regex: hosts/mom-edge/secrets\.enc\.yaml$
+    age:
+      - age1c75r3vmlttna6qkw85s2yke6whtn50x5sqnv0cftm648mcm2xqgqyf2e5w
