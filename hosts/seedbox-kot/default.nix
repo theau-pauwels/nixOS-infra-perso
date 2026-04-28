@@ -6,13 +6,14 @@
     ../../modules/common/ssh.nix
     ../../modules/common/security.nix
     ../../modules/networking/firewall.nix
+    ../../modules/services/seedbox.nix
     ../../modules/observability/exporters.nix
     ../../modules/backup/restic.nix
   ];
 
   personalInfra.common.base = {
     enable = true;
-    hostName = "jellyfin-kot";
+    hostName = "seedbox-kot";
   };
 
   personalInfra.common.security.enable = true;
@@ -25,17 +26,19 @@
     enable = true;
     allowedTCPPorts = [
       22
-      8096
+      8080
     ];
   };
 
-  services.jellyfin = {
+  personalInfra.services.seedbox = {
     enable = true;
-    openFirewall = true;
-    dataDir = "/srv/jellyfin/data";
-    configDir = "/srv/jellyfin/config";
-    cacheDir = "/srv/jellyfin/cache";
-    logDir = "/srv/jellyfin/log";
+    dataRoot = "/srv/seedbox";
+    gluetun = {
+      endpointIp = "82.165.20.195";
+      endpointPort = 51820;
+      tunnelAddress = "10.8.0.20/32";
+      environmentFile = "/var/lib/seedbox/gluetun/ionos-vps2-wireguard.env";
+    };
   };
 
   personalInfra.observability.exporters.enable = false;
@@ -52,10 +55,9 @@
     fsType = "ext4";
   };
 
-  # TODO: replace this placeholder with the NAS-Kot backed VM disk, bind mount,
-  # or stable passthrough disk identifier after auditing Proxmox.
-  fileSystems."/srv/jellyfin" = {
-    device = "/dev/disk/by-label/jellyfin-data";
+  # TODO: replace with the NAS-Kot backed VM disk or shared dataset path.
+  fileSystems."/srv/seedbox" = {
+    device = "/dev/disk/by-label/seedbox-data";
     fsType = "ext4";
     options = [
       "nofail"

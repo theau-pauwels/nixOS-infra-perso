@@ -6,13 +6,14 @@
     ../../modules/common/ssh.nix
     ../../modules/common/security.nix
     ../../modules/networking/firewall.nix
+    ../../modules/services/jellyseerr.nix
     ../../modules/observability/exporters.nix
     ../../modules/backup/restic.nix
   ];
 
   personalInfra.common.base = {
     enable = true;
-    hostName = "jellyfin-kot";
+    hostName = "jellyseerr-kot";
   };
 
   personalInfra.common.security.enable = true;
@@ -25,17 +26,14 @@
     enable = true;
     allowedTCPPorts = [
       22
-      8096
+      5055
     ];
   };
 
-  services.jellyfin = {
+  personalInfra.services.jellyseerr = {
     enable = true;
-    openFirewall = true;
-    dataDir = "/srv/jellyfin/data";
-    configDir = "/srv/jellyfin/config";
-    cacheDir = "/srv/jellyfin/cache";
-    logDir = "/srv/jellyfin/log";
+    dataDir = "/srv/jellyseerr/config";
+    port = 5055;
   };
 
   personalInfra.observability.exporters.enable = false;
@@ -52,10 +50,9 @@
     fsType = "ext4";
   };
 
-  # TODO: replace this placeholder with the NAS-Kot backed VM disk, bind mount,
-  # or stable passthrough disk identifier after auditing Proxmox.
-  fileSystems."/srv/jellyfin" = {
-    device = "/dev/disk/by-label/jellyfin-data";
+  # TODO: replace with the NAS-Kot backed VM disk or shared dataset path.
+  fileSystems."/srv/jellyseerr" = {
+    device = "/dev/disk/by-label/jellyseerr-data";
     fsType = "ext4";
     options = [
       "nofail"

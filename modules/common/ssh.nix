@@ -19,6 +19,12 @@ in
       example = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKEPLACEHOLDER admin@example" ];
       description = "Public admin SSH keys. Never put private keys here.";
     };
+
+    createAdminUser = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Create the local break-glass admin user.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -33,7 +39,13 @@ in
       };
     };
 
-    users.users.${cfg.adminUser}.openssh.authorizedKeys.keys = cfg.adminAuthorizedKeys;
+    users.groups.${cfg.adminUser} = lib.mkIf cfg.createAdminUser { };
+    users.users.${cfg.adminUser} = {
+      isNormalUser = lib.mkIf cfg.createAdminUser true;
+      group = lib.mkIf cfg.createAdminUser cfg.adminUser;
+      extraGroups = lib.mkIf cfg.createAdminUser [ "wheel" ];
+      openssh.authorizedKeys.keys = cfg.adminAuthorizedKeys;
+    };
 
     # TODO: add future trusted SSH user CA public key support separately from
     # personal break-glass admin keys.
