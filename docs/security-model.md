@@ -24,6 +24,30 @@ public exposure is required.
 | Databases | Internal only | No public exposure |
 | Backup repositories | Internal or authenticated remote | Encrypted before leaving site |
 
+## Phase 3 Service Exposure Matrix
+
+| Service | Route or port | Exposure | Protection |
+| --- | --- | --- | --- |
+| SSH | `22/tcp` | public for now | public keys only, no passwords |
+| Current WireGuard | `51820/udp` | public | WireGuard keys and preshared keys |
+| Current WGDashboard | `theau-vps.duckdns.org` via Nginx | public for now | WGDashboard auth |
+| RustDesk hbbs/hbbr | `21115-21117` selected TCP/UDP | public | RustDesk protocol/key model |
+| iperf3 | `5201/tcp` | public for now | operational test service |
+| Headscale | `headscale.theau-vps.duckdns.org` | public HTTPS | Headscale OIDC through Authelia |
+| Authelia | `auth.theau-vps.duckdns.org` | public HTTPS | central login/2FA and service authorization |
+| LLDAP user manager | `users.theau-vps.duckdns.org` | SSO-protected | Authelia `super-admin` only |
+| Jellyfin | `jellyfin.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
+| Jellyseerr | `jellyseerr.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
+| Seedbox UI | `seedbox.theau-vps.duckdns.org` | SSO-protected | Authelia `super-admin` only |
+| Monitoring UI | future route | VPN-only | Authelia plus VPN |
+
+Headscale and the current WireGuard service have separate roles. WireGuard is
+the existing production tunnel and torrent egress path. Headscale is the future
+control plane for user devices and service nodes.
+
+Authelia is the single authorization point for private web services. LLDAP owns
+users and groups; Caddy only asks Authelia whether a request may reach a service.
+
 ## SSH Access Models
 
 ### Personal Admin Access

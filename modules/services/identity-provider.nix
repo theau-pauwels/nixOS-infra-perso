@@ -5,7 +5,7 @@ let
 in
 {
   options.personalInfra.services.identityProvider = {
-    enable = lib.mkEnableOption "central LLDAP and Authelia identity provider";
+    enable = lib.mkEnableOption "central LLDAP identity provider";
 
     baseDn = lib.mkOption {
       type = lib.types.str;
@@ -37,11 +37,6 @@ in
       description = "Path to the initial LLDAP admin password file.";
     };
 
-    autheliaInstance = lib.mkOption {
-      type = lib.types.str;
-      default = "main";
-      description = "Authelia instance name.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -61,47 +56,7 @@ in
       silenceForceUserPassResetWarning = lib.mkDefault true;
     };
 
-    services.authelia.instances.${cfg.autheliaInstance} = {
-      enable = lib.mkDefault true;
-      settings = {
-        theme = lib.mkDefault "dark";
-        default_2fa_method = lib.mkDefault "totp";
-        server.address = lib.mkDefault "tcp://127.0.0.1:9091";
-        authentication_backend.ldap = {
-          address = "ldap://127.0.0.1:3890";
-          base_dn = cfg.baseDn;
-          additional_users_dn = "ou=people";
-          users_filter = "(&({username_attribute}={input})(objectClass=person))";
-          additional_groups_dn = "ou=groups";
-          groups_filter = "(member={dn})";
-          user = "uid=${cfg.lldapAdminUser},ou=people,${cfg.baseDn}";
-          attributes = {
-            username = "uid";
-            display_name = "displayName";
-            mail = "mail";
-            group_name = "cn";
-          };
-        };
-        access_control = {
-          default_policy = "deny";
-          rules = [
-            {
-              domain = "*.theau-vps.duckdns.org";
-              policy = "one_factor";
-            }
-            {
-              domain = "users.theau-vps.duckdns.org";
-              policy = "one_factor";
-              subject = [ "group:super-admin" ];
-            }
-          ];
-        };
-      };
-    };
-
-    # TODO: provide Authelia storage/session/JWT/OIDC secrets via SOPS-backed
-    # files before enabling this module on a live host.
-    # TODO: expose LLDAP's web UI only behind the VPS reverse proxy and only to
-    # users in the `super-admin` group.
+    # LLDAP only manages identities. Service access is owned centrally by
+    # modules/services/authelia.nix and enforced at the reverse proxy.
   };
 }

@@ -46,6 +46,7 @@
         jellyfinKotTarball = mkHostTarball "jellyfin-kot";
         seedboxKotTarball = mkHostTarball "seedbox-kot";
         jellyseerrKotTarball = mkHostTarball "jellyseerr-kot";
+        vpsNativeTarball = mkHostTarball "vps";
         kotMediaStackTarball = pkgs.runCommand "kot-media-stack.tar.gz" { } ''
           mkdir -p root
           ln -s ${jellyfinKotTarball} root/jellyfin-kot-system.tar.gz
@@ -67,6 +68,7 @@
           jellyfin-kot = jellyfinKotTarball;
           seedbox-kot = seedboxKotTarball;
           jellyseerr-kot = jellyseerrKotTarball;
+          vps-native = vpsNativeTarball;
           kot-media-stack = kotMediaStackTarball;
           default = theauVpsBundle;
         };
@@ -88,6 +90,12 @@
       }
     )
     // {
+      nixosConfigurations.vps = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ./hosts/vps
+        ];
+      };
       nixosConfigurations.jellyfin-kot = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
