@@ -3,6 +3,7 @@
 {
   imports = [
     ../../modules/common/base.nix
+    ../../modules/common/logging.nix
     ../../modules/common/ssh.nix
     ../../modules/common/security.nix
     ../../modules/networking/firewall.nix
@@ -19,6 +20,15 @@
 
   personalInfra.common.security.enable = true;
   personalInfra.common.ssh.enable = true;
+  personalInfra.common.logging = {
+    enable = true;
+    journalMaxUse = "512M";
+    journalKeepFree = "2G";
+    journalMaxFileSize = "64M";
+    journalMaxRetention = "14day";
+    vacuumSize = "384M";
+    logrotateSize = "50M";
+  };
 
   # TODO: add real admin public keys from approved inventory.
   personalInfra.common.ssh.adminAuthorizedKeys = [ ];

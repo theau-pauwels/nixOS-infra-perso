@@ -175,6 +175,21 @@ The default job backs up:
 
 Large media is intentionally not included by default.
 
+## Log Retention
+
+The NAS root partition is intentionally small at 30 GiB, so logs are bounded:
+
+- persistent systemd journal max: 512 MiB
+- journald free-space guard: 2 GiB
+- journal file rotation: 64 MiB
+- maximum journal retention: 14 days
+- daily `journalctl --vacuum-size=384M` guard
+- daily logrotate with compression for `/var/log/*.log` and Samba logs
+- text log early rotation at 50 MiB
+
+This keeps local diagnostics available without allowing logs to fill the OS
+mirror and block boot or service operation.
+
 ## Validation
 
 Build the NAS target:
