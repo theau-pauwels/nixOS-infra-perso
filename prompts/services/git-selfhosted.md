@@ -4,53 +4,82 @@
 See `../MASTER.md` for full infrastructure context.
 
 Relevant expectations:
-- Centralize personal projects and documentation.
-- Prefer self-hosted, reproducible services.
-- Protect administrative interfaces.
+- Centralize personal projects and infrastructure code.
+- Prefer lightweight, maintainable services.
+- Administrative interfaces must be protected (SSO or VPN).
 
 ## This Service Implements
 
 ### Objective
-Deploy a self-hosted Git platform (e.g., Gitea or Forgejo) to manage, version, and document personal projects directly on the infrastructure.
+Deploy a self-hosted Git platform (Gitea or Forgejo) to centralize, version, and document personal projects.
+
+### Target Use Cases
+- Host personal Git repositories.
+- Store infrastructure-as-code (this repo).
+- Provide web UI for browsing, issues, and documentation.
+- Optional CI/CD hooks later.
 
 ### Tasks
 
 1. **Choose implementation**
-   - Gitea or Forgejo (preferred lightweight solutions).
+   - Prefer Forgejo or Gitea (lightweight, low RAM).
+   - Document rationale.
 
 2. **Create service module**
    - `modules/services/git.nix`
    - Disabled by default.
    - Options:
-     - domain
-     - SSH and HTTP ports
+     - domain (e.g., `git.theau.net`)
+     - SSH port
+     - HTTP(S) port
      - data directory
-     - backup configuration
+     - backup integration
 
-3. **Authentication and security**
-   - Integrate with Authelia optionally.
+3. **Host integration**
+   - Decide placement:
+     - VPS (public access), or
+     - Kot (VPN-only)
+   - Keep build working without enabling service.
+
+4. **Authentication & security**
    - Disable public registration by default.
-   - Admin user placeholder only.
+   - Admin user as placeholder only.
+   - Optional Authelia SSO integration.
+   - SSH access via keys only.
 
-4. **Reverse proxy integration**
+5. **Reverse proxy**
    - Integrate with Caddy.
-   - Provide HTTPS endpoints.
+   - HTTPS enabled automatically.
+   - Optional Authelia protection for UI.
 
-5. **Backup strategy**
-   - Document repository backups (Restic).
-   - Include config and database.
+6. **Backup strategy**
+   - Integrate with Restic:
+     - repositories
+     - database
+     - config
+   - Document restore procedure.
 
-6. **Documentation**
+7. **Documentation**
    - `docs/implementation/git-selfhosted.md`
+     - Architecture
+     - Access model
+     - Backup strategy
+     - Migration notes
 
 ## Constraints
-- No public open registration.
-- No real secrets.
+- No real credentials in repo.
+- No open public registration.
+- Must work without Internet for local usage (optional).
+- Avoid high resource usage.
 
 ## Acceptance Criteria
+- `modules/services/git.nix` valid and disabled by default.
 - Builds succeed.
-- Module valid and disabled by default.
+- Documentation complete.
+- Backup strategy defined.
 
-## Questions
-1. Gitea or Forgejo?
-2. Public or VPN-only access?
+## Questions to Ask Before Starting
+1. Forgejo or Gitea?
+2. Public access or VPN-only?
+3. Should repos be mirrored from GitHub?
+4. Expected number of users?
