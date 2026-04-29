@@ -4,7 +4,7 @@
 See `../MASTER.md` for full infrastructure context.
 
 Relevant expectations:
-- Admin and private services must be protected through VPN, Authelia, or both.
+- All web authentication for infrastructure services must pass through Authelia.
 - Access should be granted by user/group rather than by ad-hoc per-service passwords.
 - Secrets must never be committed to the repository.
 - The infrastructure should remain manageable for a personal/family self-hosted environment.
@@ -16,10 +16,26 @@ Implement full user management for the self-hosted infrastructure using Authelia
 
 The goal is to make it possible to grant access to specific parts of the infrastructure without giving every user full access to everything.
 
+### Global Authentication Rule
+Every web-exposed service must be protected by Authelia before the request reaches the service.
+
+This means:
+- Public and private web services go through Caddy/Traefik ForwardAuth to Authelia.
+- Users authenticate once with Authelia.
+- Authelia decides access using groups from LDAP/LLDAP.
+- Services should not be directly reachable on their raw HTTP ports from untrusted networks.
+- Per-service local accounts should only exist for bootstrap, emergency recovery, or app-internal authorization when unavoidable.
+
+Allowed exceptions:
+- Non-web protocols such as SSH, SMTP, LDAP, WireGuard, or direct Git SSH.
+- Emergency break-glass access documented for recovery.
+- Health checks that are private, local-only, and not externally exposed.
+- Services that cannot delegate authentication may still keep local accounts, but their web UI must remain behind Authelia.
+
 ### Target Use Cases
 - Create users for family, trusted friends, or personal admin accounts.
 - Assign users to groups such as `admins`, `media-users`, `git-users`, `paas-admins`, or `wiki-users`.
-- Protect services through Authelia policies and group membership.
+- Protect all service web UIs through Authelia policies and group membership.
 - Manage access without manually editing every individual service.
 - Provide a UI for user/group management.
 - Keep a recovery/admin path if Authelia or the management UI fails.
@@ -27,13 +43,13 @@ The goal is to make it possible to grant access to specific parts of the infrast
 ## Recommended Architecture
 
 ### Preferred Model
-Use Authelia as the identity/access-control gateway and add a dedicated user-management backend/UI for maintaining users and groups.
+Use Authelia as the mandatory identity/access-control gateway and add a dedicated user-management backend/UI for maintaining users and groups.
 
 Recommended components:
 - **Authelia** for SSO, authentication, 2FA, and access-control policies.
 - **LDAP directory** as the central user/group database.
 - **LLDAP** as a lightweight LDAP server with a web administration UI.
-- **Caddy ForwardAuth** or Traefik ForwardAuth for protected services.
+- **Caddy ForwardAuth** or Traefik ForwardAuth for all protected web services.
 
 Suggested flow:
 
@@ -88,10 +104,11 @@ LLDAP is recommended for this infrastructure because it provides:
      - LDAP read-only bind user for Authelia
      - allowed groups
      - Caddy/Authelia integration flags
+     - mandatory ForwardAuth policy for web services
 
 3. **Deploy LLDAP or chosen LDAP backend**
    - Prefer LLDAP unless a better alternative is chosen.
-   - Expose UI only through LAN/VPN or Authelia-protected route.
+   - Expose UI only through Authelia-protected admin route or VPN-local route.
    - Store data outside the Nix store.
    - Do not commit admin password, JWT secret, key seed, bind passwords, or database secrets.
 
@@ -120,11 +137,19 @@ LLDAP is recommended for this infrastructure because it provides:
    - Forgejo web UI: `git-users`, `git-admins`, or `admins`.
    - Prowlarr admin UI: `media-admins` or `admins` only.
    - Jellyseerr: `media-users`, `media-admins`, or `admins`.
-   - Wiki offline: LAN/VPN anonymous or `wiki-users` if protected.
+   - Wiki offline: `wiki-users` or `admins` if exposed through HTTP route.
    - Monitoring/admin dashboards: `monitoring-users`, `infra-admins`, or `admins`.
    - LLDAP management UI: `admins` only.
+   - Authelia portal: authenticated users only, with admin functions restricted where applicable.
 
-7. **User lifecycle management**
+7. **Enforce Authelia-first exposure**
+   - Every Caddy/Traefik route for a service web UI must include Authelia ForwardAuth.
+   - Raw service ports must bind to localhost, VPN-only, LAN-only, or private Docker networks.
+   - No service web UI should be exposed directly to WAN.
+   - If a service supports its own SSO/OIDC, it may also use Authelia/OIDC, but edge ForwardAuth remains the default requirement.
+   - Document any exception explicitly.
+
+8. **User lifecycle management**
    Document and/or implement workflows for:
    - create user
    - assign groups
@@ -134,7 +159,7 @@ LLDAP is recommended for this infrastructure because it provides:
    - rotate service account credentials
    - emergency admin recovery
 
-8. **Service account management**
+9. **Service account management**
    Track non-human accounts:
    - Gmail SMTP relay account
    - Forgejo deploy keys / tokens
@@ -142,23 +167,25 @@ LLDAP is recommended for this infrastructure because it provides:
    - Prowlarr/Jellyseerr/qBittorrent API users
    - Authelia LDAP bind account
 
-9. **Security hardening**
+10. **Security hardening**
    - Require 2FA for admin groups.
    - Keep LLDAP UI private/protected.
    - Protect Authelia session cookies with secure domains.
    - Avoid public access to raw LDAP ports.
    - Document backup/restore for LDAP database and secrets.
 
-10. **Host integration**
+11. **Host integration**
    - Prefer running user-management on a trusted internal host or VPS depending on exposure needs.
    - If Authelia already runs on VPS, ensure it can reach the LDAP backend securely.
    - If LDAP runs internally, route access through VPN only.
 
 ## Constraints
+- All web-exposed service authentication must pass through Authelia.
+- Do not expose any service web UI directly to WAN without Authelia ForwardAuth.
 - Do not commit real users’ passwords, password hashes, LDAP secrets, JWT secrets, or admin tokens.
 - Do not expose LDAP publicly to the Internet.
 - Do not expose the user-management UI publicly without Authelia and admin-only policy.
-- Do not rely only on per-service local admin passwords for access control.
+- Do not rely only on per-service local admin passwords for web access control.
 - Do not make every authenticated user an admin.
 - Keep an emergency recovery path if Authelia or LDAP is misconfigured.
 
@@ -168,6 +195,8 @@ LLDAP is recommended for this infrastructure because it provides:
 - Authelia can authenticate users against the central user database.
 - A web UI exists to create users and assign groups.
 - Access to services can be granted by group.
+- Every web-exposed service route is protected by Authelia ForwardAuth or has a documented exception.
+- Raw service ports are not publicly reachable.
 - Admin-only services are restricted to admin groups.
 - 2FA policy is documented for privileged users.
 - Recovery/admin fallback procedure is documented.
