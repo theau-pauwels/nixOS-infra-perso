@@ -59,6 +59,32 @@ Replace them before production.
 The committed Dad file currently contains encrypted placeholder values only.
 Replace them before production.
 
+Phase 6.5 service modules introduce additional runtime secret paths. They are
+documented placeholders only until the relevant host is enabled and wired to
+`sops-nix` or another runtime secret mechanism:
+
+- VPS SMTP relay:
+  - `/run/secrets/gmail-smtp-app-password`
+  - suggested SOPS key: `smtp/gmail-app-password`
+- Forgejo:
+  - `/run/secrets/forgejo-db-password` for non-sqlite database backends
+  - `/run/secrets/forgejo-mailer-password` only if the internal SMTP relay later requires client auth
+- Prowlarr and media automation:
+  - `/run/secrets/prowlarr-api-key`
+  - `/run/secrets/prowlarr-c411-username`
+  - `/run/secrets/prowlarr-c411-password`
+  - `/run/secrets/qbittorrent-webui-password`
+- Coolify:
+  - `/data/coolify/source/.env`
+  - `/run/secrets/coolify-app-key`
+  - `/run/secrets/coolify-db-password`
+  - `/run/secrets/coolify-redis-password`
+  - `/run/secrets/coolify-git-token`
+  - `/run/secrets/dns-provider-token`
+
+Do not commit the Coolify `.env`, tracker credentials, Gmail app password,
+database passwords, deploy keys, OAuth tokens, or DNS provider tokens.
+
 Trusted user SSH public keys do not need encryption. They live in:
 
 - `hosts/theau-vps/ssh-public-keys.json`

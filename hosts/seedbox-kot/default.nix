@@ -6,6 +6,7 @@
     ../../modules/common/ssh.nix
     ../../modules/common/security.nix
     ../../modules/networking/firewall.nix
+    ../../modules/services/prowlarr.nix
     ../../modules/services/seedbox.nix
     ../../modules/observability/exporters.nix
     ../../modules/backup/restic.nix
@@ -41,6 +42,7 @@
     };
   };
 
+  personalInfra.services.prowlarr.enable = false;
   personalInfra.observability.exporters.enable = false;
   personalInfra.backup.restic.enable = false;
 

@@ -10,6 +10,7 @@
     ../../modules/backup/zfs.nix
     ../../modules/backup/restic.nix
     ../../modules/services/file-sharing.nix
+    ../../modules/services/wiki-offline.nix
     ../../modules/observability/exporters.nix
   ];
 
@@ -119,6 +120,7 @@
     };
   };
 
+  personalInfra.services.wikiOffline.enable = false;
   personalInfra.observability.exporters.enable = false;
 
   boot.swraid = {

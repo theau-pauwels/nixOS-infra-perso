@@ -32,6 +32,11 @@ The target architecture is documented in:
 - [`docs/implementation/mom-edge.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/mom-edge.md)
 - [`docs/implementation/mom-nvr.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/mom-nvr.md)
 - [`docs/implementation/dad-edge.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/dad-edge.md)
+- [`docs/implementation/smtp.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/smtp.md)
+- [`docs/implementation/git-selfhosted.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/git-selfhosted.md)
+- [`docs/implementation/wiki-offline.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/wiki-offline.md)
+- [`docs/implementation/prowlarr.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/prowlarr.md)
+- [`docs/implementation/coolify-paas.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/coolify-paas.md)
 
 ## Production warning
 
@@ -51,6 +56,7 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 | Phase 4: NAS ZFS | Complete | Adds NAS Kot ZFS, LAN-only shares, Sanoid, Restic, and sops-nix secrets |
 | Phase 5: Mom edge | Complete | Adds Mom site VPN edge, monitoring exporters, disabled Frigate module, and secrets skeleton |
 | Phase 6: Dad edge | Complete | Adds outbound-only Dad WireGuard edge for Starlink CGNAT |
+| Phase 6.5: self-hosted services | Complete | Adds disabled SMTP, Forgejo, Kiwix, Prowlarr, and Coolify modules with host imports and implementation docs |
 | Phase 7: VPS NixOS native | Not started | Future work |
 
 ## Target model
@@ -87,6 +93,17 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - nftables firewall
 - iperf3
 - certbot renewal timer
+
+## Disabled NixOS service modules
+
+Phase 6.5 adds declarative modules for future self-hosted services. These are
+imported into target NixOS hosts but disabled until intentionally enabled:
+
+- SMTP Gmail relay on `hosts/vps`
+- Forgejo self-hosted Git on `hosts/vps`
+- Coolify PaaS on `hosts/vps`
+- Kiwix offline wiki on `hosts/nas-kot`
+- Prowlarr on `hosts/seedbox-kot`
 
 ## Safety rules
 

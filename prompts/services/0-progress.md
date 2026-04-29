@@ -15,13 +15,13 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 |---|---:|---|
 | Service prompts | ✅ | Service design prompts exist under `prompts/services/`. |
 | Phase integration | ✅ | `prompts/phases/phase-6.5-services.md` exists and describes implementation work. |
-| NixOS service modules | 🟡 | Skeleton modules exist under `modules/services/`. |
-| Host integration | 🔴 | Services are not yet wired into final host configurations. |
-| Reverse proxy integration | 🔴 | Caddy/Traefik integration still needs to be implemented service by service. |
-| Authelia integration | 🔴 | Not implemented yet in service modules. |
-| Secrets integration | 🔴 | Placeholder paths exist, but no final `sops-nix`/`agenix`/host-local secret wiring. |
-| Documentation | 🔴 | Implementation docs under `docs/implementation/` still need to be created or completed. |
-| Build validation | 🔴 | Full Nix build validation still needs to be run after host integration. |
+| NixOS service modules | ✅ | SMTP, Forgejo, Kiwix, Prowlarr, and Coolify modules are implemented and disabled by default. |
+| Host integration | ✅ | Modules are imported on the planned target hosts without enabling new services. |
+| Reverse proxy integration | ✅ | Optional Caddy vhosts exist for HTTP services; Coolify admin and private/admin UIs support ForwardAuth. |
+| Authelia integration | ✅ | Caddy ForwardAuth snippets are included where admin/private UI exposure is supported. |
+| Secrets integration | 🟡 | Runtime secret paths are modeled and documented; final host SOPS wiring remains a production enablement step. |
+| Documentation | ✅ | Implementation docs exist under `docs/implementation/` for all phase 6.5 services. |
+| Build validation | 🟡 | Must be run with local Nix before production enablement. |
 
 ## Service Status
 
@@ -30,21 +30,17 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Item | Status | Notes |
 |---|---:|---|
 | Prompt | ✅ | `prompts/services/smtp-internal.md` defines Gmail relay mode. |
-| Module | 🟡 | `modules/services/smtp.nix` exists. |
-| Implementation quality | ⚠️ | Good skeleton, but secret handling must be reviewed before production. |
-| Gmail relay | 🟡 | Configured conceptually through Postfix relayhost. |
-| Secret management | 🔴 | Gmail app password must be wired through a real secret mechanism. |
-| Firewall / exposure | 🔴 | Host-level firewall rules still need to restrict access to LAN/VPN only. |
-| Documentation | 🔴 | `docs/implementation/smtp.md` still needs to be written. |
-| Test procedure | 🔴 | Test mail procedure still needs to be documented and run. |
+| Module | ✅ | `modules/services/smtp.nix` configures Postfix relayhost and runtime SASL secret material. |
+| Implementation quality | ✅ | Disabled by default, IP-trusted, runtime secret file, and open-relay assertions. |
+| Gmail relay | ✅ | Configured through Postfix relayhost with STARTTLS to Gmail. |
+| Secret management | 🟡 | Runtime secret path documented; final SOPS host binding remains before enablement. |
+| Firewall / exposure | ✅ | Closed by default with assertions against public wildcard listeners. |
+| Documentation | ✅ | `docs/implementation/smtp.md` exists. |
+| Test procedure | ✅ | Test mail procedure is documented. |
 
 #### Remaining work
-- Decide secret backend: `sops-nix`, `agenix`, or host-local secret file.
-- Replace build-time placeholder password handling with runtime secret handling.
-- Define allowed LAN/VPN subnets explicitly.
-- Add host-level firewall rules.
-- Write documentation.
 - Send a test email to an external address.
+- Wire the Gmail app password to the chosen host secret backend before enabling.
 
 ---
 
@@ -53,22 +49,17 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Item | Status | Notes |
 |---|---:|---|
 | Prompt | ✅ | `prompts/services/git-selfhosted.md` exists. |
-| Module | 🟡 | `modules/services/git.nix` exists. |
-| Implementation quality | ⚠️ | Basic Gitea module only. |
-| Forgejo/Gitea choice | 🟡 | Current skeleton uses Gitea. Forgejo decision still open. |
+| Module | ✅ | `modules/services/git.nix` wraps `services.forgejo`. |
+| Implementation quality | ✅ | Forgejo, registration disabled, SSH/HTTP options, dumps, optional Caddy/Authelia. |
+| Forgejo/Gitea choice | ✅ | Forgejo selected. |
 | Public registration disabled | ✅ | Disabled in module settings. |
-| Reverse proxy | 🔴 | Caddy integration not implemented. |
-| Authelia / SSO | 🔴 | Not implemented. |
-| Backup | 🔴 | Not implemented. |
-| Documentation | 🔴 | `docs/implementation/git-selfhosted.md` still needs to be written. |
+| Reverse proxy | ✅ | Optional Caddy integration implemented. |
+| Authelia / SSO | ✅ | Optional ForwardAuth protection implemented for the web UI. |
+| Backup | ✅ | Forgejo dump timer enabled by default when service is enabled. |
+| Documentation | ✅ | `docs/implementation/git-selfhosted.md` exists. |
 
 #### Remaining work
-- Confirm Gitea vs Forgejo.
-- Decide whether access is public, VPN-only, or public with Authelia.
-- Add Caddy reverse proxy configuration.
-- Add backup integration for repositories, database, and config.
-- Add restore procedure.
-- Write documentation.
+- Enable on the target host only after DNS, SSH port policy, and backup storage are confirmed.
 
 ---
 
@@ -77,19 +68,15 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Item | Status | Notes |
 |---|---:|---|
 | Prompt | ✅ | `prompts/services/wiki-offline.md` exists. |
-| Module | 🟡 | `modules/services/wiki-offline.nix` exists. |
-| Implementation quality | ⚠️ | Minimal Kiwix service skeleton. |
-| Storage strategy | 🔴 | NAS/local storage choice not implemented. |
-| ZIM management | 🔴 | No download/update workflow yet. |
-| Network exposure | 🔴 | LAN/VPN-only firewall/reverse proxy rules not implemented. |
-| Documentation | 🔴 | `docs/implementation/wiki-offline.md` still needs to be written. |
+| Module | ✅ | `modules/services/wiki-offline.nix` wraps `services.kiwix-serve`. |
+| Implementation quality | ✅ | Kiwix, explicit library input, LAN/VPN-only defaults, optional Caddy. |
+| Storage strategy | ✅ | NAS placement and `/srv/wiki-offline` runtime storage documented. |
+| ZIM management | ✅ | Manual `kiwix-manage` workflow documented. |
+| Network exposure | ✅ | Firewall closed by default; public routes asserted against. |
+| Documentation | ✅ | `docs/implementation/wiki-offline.md` exists. |
 
 #### Remaining work
-- Confirm Kiwix as final implementation.
-- Decide storage path for ZIM files.
-- Add ZIM update workflow or manual procedure.
-- Add LAN/VPN-only exposure.
-- Write documentation.
+- Download selected ZIM datasets outside Git before enabling the service.
 
 ---
 
@@ -98,23 +85,18 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Item | Status | Notes |
 |---|---:|---|
 | Prompt | ✅ | `prompts/services/prowlarr-c411.md` exists. |
-| Module | 🟡 | `modules/services/prowlarr.nix` exists. |
-| Implementation quality | ⚠️ | Very minimal service skeleton. |
-| C411 indexer | 🔴 | Not configured. |
-| Jellyseerr integration | 🔴 | Not configured. |
-| qBittorrent integration | 🔴 | Not configured. |
-| Gluetun/VPN routing | 🔴 | Not implemented. |
-| Public exposure blocked | 🔴 | Firewall/reverse proxy policy not implemented. |
-| Documentation | 🔴 | `docs/implementation/prowlarr.md` still needs to be written. |
+| Module | ✅ | `modules/services/prowlarr.nix` wraps the NixOS Prowlarr module. |
+| Implementation quality | ✅ | Internal-only defaults, environment file support, optional Caddy/Authelia. |
+| C411 indexer | 🟡 | Credentials and indexer creation remain UI/runtime steps; no credentials in Git. |
+| Jellyseerr integration | 🟡 | URLs and API-key paths documented; final API keys are runtime secrets. |
+| qBittorrent integration | 🟡 | qBittorrent URL and Gluetun ordering modeled; final app credentials are runtime secrets. |
+| Gluetun/VPN routing | ✅ | Prowlarr orders after the Gluetun unit; qBittorrent remains Gluetun-bound. |
+| Public exposure blocked | ✅ | Firewall closed by default; public default routes asserted against. |
+| Documentation | ✅ | `docs/implementation/prowlarr.md` exists. |
 
 #### Remaining work
-- Confirm how C411 should be integrated.
-- Decide whether FlareSolverr is required.
-- Wire Prowlarr to Jellyseerr.
-- Wire Prowlarr to qBittorrent.
-- Ensure torrent-related traffic stays behind Gluetun.
-- Keep Prowlarr LAN/VPN-only.
-- Write documentation.
+- Confirm whether C411 requires FlareSolverr before production enablement.
+- Enter real tracker/API credentials through runtime secret handling, never Git.
 
 ---
 
@@ -123,24 +105,19 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Item | Status | Notes |
 |---|---:|---|
 | Prompt | ✅ | `prompts/services/coolify-paas-authelia.md` exists. |
-| Module | 🟡 | `modules/services/coolify.nix` exists. |
-| Implementation quality | ⚠️ | Minimal Docker-based skeleton only. |
-| PaaS routing | 🔴 | Not implemented. |
-| Wildcard DNS | 🔴 | Not implemented/documented in final infra docs. |
-| Reverse proxy | 🔴 | Caddy/Traefik ownership not decided. |
-| Authelia ForwardAuth | 🔴 | Not implemented. |
-| TLS | 🔴 | Wildcard/DNS-01 strategy not implemented. |
-| Backup | 🔴 | Not implemented. |
-| Documentation | 🔴 | `docs/implementation/coolify-paas.md` still needs to be written. |
+| Module | ✅ | `modules/services/coolify.nix` manages an external Coolify Compose stack. |
+| Implementation quality | ✅ | Disabled by default, runtime `.env`, no destructive cleanup, Caddy admin proxy optional. |
+| PaaS routing | 🟡 | Admin route implemented; wildcard app routing remains a DNS/TLS production decision. |
+| Wildcard DNS | ✅ | DNS requirements documented; not assumed configured. |
+| Reverse proxy | ✅ | Preferred `caddy-edge` admin model documented and implemented. |
+| Authelia ForwardAuth | ✅ | Coolify admin protection is required in Caddy edge mode. |
+| TLS | ✅ | Caddy hostname TLS and DNS-01 wildcard strategy documented. |
+| Backup | ✅ | `/data/coolify`, DB/volumes, and secrets are documented. |
+| Documentation | ✅ | `docs/implementation/coolify-paas.md` exists. |
 
 #### Remaining work
-- Decide host placement: VPS, Kot, or dedicated VM.
-- Decide reverse proxy ownership: Caddy edge, Traefik internal, or hybrid.
-- Configure wildcard DNS for `*.theau.net`.
-- Add Authelia protection for Coolify admin UI.
-- Define app exposure policy: public by default or protected by default.
-- Add backup strategy.
-- Write documentation.
+- Decide final production host and wildcard DNS provider before enabling.
+- Place official Coolify Compose files and `.env` outside Git.
 
 ---
 
@@ -182,6 +159,7 @@ Phase 6.5 can be considered complete when:
 
 ## Current Summary
 
-Current state: **design complete, skeleton implementation started, production integration pending**.
+Current state: **phase 6.5 implementation complete, production enablement pending**.
 
-The repository is ready for the next step: turning the skeleton service modules into production-ready NixOS modules and wiring them into the appropriate hosts.
+The repository is ready for the next step: enable selected services one at a time
+after DNS, runtime secrets, and host-specific firewall policy are confirmed.

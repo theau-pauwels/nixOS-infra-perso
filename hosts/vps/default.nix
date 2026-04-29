@@ -9,8 +9,11 @@
     ../../modules/networking/headscale.nix
     ../../modules/services/authelia.nix
     ../../modules/services/caddy.nix
+    ../../modules/services/coolify.nix
+    ../../modules/services/git.nix
     ../../modules/services/identity-provider.nix
     ../../modules/services/rustdesk.nix
+    ../../modules/services/smtp.nix
     ../../modules/observability/exporters.nix
   ];
 
@@ -44,6 +47,9 @@
   };
 
   personalInfra.services.rustdesk.enable = false;
+  personalInfra.services.coolify.enable = false;
+  personalInfra.services.git.enable = false;
+  personalInfra.services.smtp.enable = false;
   personalInfra.observability.exporters.enable = false;
 
   boot.growPartition = true;
