@@ -90,6 +90,9 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - WGDashboard behind local Gunicorn on `127.0.0.1:10086`
 - RustDesk Server OSS with `hbbs` and `hbbr`
 - Nginx reverse proxy on `80` and later `443`
+- Authelia on `127.0.0.1:9091`
+- prepared public vhosts for `authelia.theau.net`, `coolify.theau.net`, and `wg.theau.net`
+- a default Nginx vhost returning 404 for unlisted hostnames
 - nftables firewall
 - iperf3
 - certbot renewal timer
@@ -273,6 +276,35 @@ Current production status:
 - Nginx redirects HTTP to HTTPS
 - Let's Encrypt is active for `theau-vps.duckdns.org`
 - the current certificate expires on `2026-07-05`
+
+## theau.net service domains
+
+The VPS bundle expects these DNS records before issuing the service
+certificate:
+
+```text
+authelia.theau.net A 82.165.20.195
+coolify.theau.net  A 82.165.20.195
+wg.theau.net       A 82.165.20.195
+```
+
+After DNS is live:
+
+```bash
+cd /home/theau/Documents/vscode/NixOS-migration
+./deploy/issue-theau-net-services-certificate.sh
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+./deploy/push-generation.sh
+```
+
+Authelia bootstrap credentials are generated on IONOS-VPS2 at:
+
+```text
+/opt/theau-vps/state/authelia/admin-credentials.txt
+```
+
+The bootstrap username is `theau`; the password is generated at activation
+time and remains only on the VPS.
 
 ## RustDesk OSS
 

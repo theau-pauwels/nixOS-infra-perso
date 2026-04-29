@@ -61,6 +61,30 @@ import json, os
 print(json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))["domain"])
 PY
 )"
+SERVICE_CERT_NAME="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("certName", "theau-net-services"))
+PY
+)"
+AUTHELIA_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("authelia", "authelia.theau.net"))
+PY
+)"
+COOLIFY_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("coolify", "coolify.theau.net"))
+PY
+)"
+WG_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("wg", "wg.theau.net"))
+PY
+)"
 
 install -d -m 0755 /etc/theau-vps /etc/theau-vps/nginx /etc/theau-vps/nginx/sites-enabled /etc/wireguard
 install -d -m 0755 /var/lib/theau-vps /var/lib/theau-vps/acme-challenge /var/lib/wgdashboard /var/lib/wgdashboard/db /var/lib/wgdashboard/log /var/lib/wgdashboard/plugins
@@ -75,6 +99,114 @@ if ! id -u rustdesk-server >/dev/null 2>&1; then
 fi
 
 install -d -o rustdesk-server -g rustdesk-server -m 0750 /var/lib/rustdesk-server
+
+if ! getent group authelia >/dev/null; then
+  groupadd --system authelia
+fi
+
+if ! id -u authelia >/dev/null 2>&1; then
+  useradd --system --gid authelia --home-dir /opt/theau-vps/state/authelia --shell /usr/sbin/nologin --no-create-home authelia
+fi
+
+install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia
+install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia/assets
+
+AUTHELIA_STATE="/opt/theau-vps/state/authelia"
+AUTHELIA_PASSWORD_FILE="$AUTHELIA_STATE/admin-password"
+AUTHELIA_PASSWORD_HASH_FILE="$AUTHELIA_STATE/admin-password-hash"
+AUTHELIA_CREDENTIALS_FILE="$AUTHELIA_STATE/admin-credentials.txt"
+AUTHELIA_JWT_SECRET_FILE="$AUTHELIA_STATE/jwt-secret"
+AUTHELIA_STORAGE_KEY_FILE="$AUTHELIA_STATE/storage-encryption-key"
+
+if [[ ! -s "$AUTHELIA_PASSWORD_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 24 > "$AUTHELIA_PASSWORD_FILE"
+fi
+
+if [[ ! -s "$AUTHELIA_JWT_SECRET_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 32 > "$AUTHELIA_JWT_SECRET_FILE"
+fi
+
+if [[ ! -s "$AUTHELIA_STORAGE_KEY_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 32 > "$AUTHELIA_STORAGE_KEY_FILE"
+fi
+
+if [[ ! -s "$AUTHELIA_PASSWORD_HASH_FILE" ]]; then
+  password="$(cat "$AUTHELIA_PASSWORD_FILE")"
+  "$BUNDLE_ROOT/share/theau-vps/authelia-package/bin/authelia" crypto hash generate argon2 --password "$password" \
+    | sed -n 's/^Digest: //p' > "$AUTHELIA_PASSWORD_HASH_FILE"
+fi
+
+password="$(cat "$AUTHELIA_PASSWORD_FILE")"
+password_hash="$(cat "$AUTHELIA_PASSWORD_HASH_FILE")"
+jwt_secret="$(cat "$AUTHELIA_JWT_SECRET_FILE")"
+storage_key="$(cat "$AUTHELIA_STORAGE_KEY_FILE")"
+
+cat > "$AUTHELIA_CREDENTIALS_FILE" <<EOF
+url: https://${AUTHELIA_DOMAIN}
+username: theau
+password: ${password}
+EOF
+
+cat > "$AUTHELIA_STATE/users_database.yml" <<EOF
+users:
+  theau:
+    disabled: false
+    displayname: Theau
+    password: "${password_hash}"
+    email: theau@example.invalid
+    groups:
+      - admins
+EOF
+
+cat > "$AUTHELIA_STATE/configuration.yml" <<EOF
+server:
+  address: tcp://127.0.0.1:9091/
+log:
+  level: info
+theme: dark
+totp:
+  issuer: theau.net
+authentication_backend:
+  file:
+    path: ${AUTHELIA_STATE}/users_database.yml
+access_control:
+  default_policy: deny
+  rules:
+    - domain: ${AUTHELIA_DOMAIN}
+      policy: one_factor
+    - domain: ${COOLIFY_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+    - domain: ${WG_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+session:
+  cookies:
+    - domain: theau.net
+      authelia_url: https://${AUTHELIA_DOMAIN}
+      default_redirection_url: https://${WG_DOMAIN}
+storage:
+  encryption_key: ${storage_key}
+  local:
+    path: ${AUTHELIA_STATE}/db.sqlite3
+notifier:
+  filesystem:
+    filename: ${AUTHELIA_STATE}/notification.txt
+identity_validation:
+  reset_password:
+    jwt_secret: ${jwt_secret}
+EOF
+
+chown authelia:authelia "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_STATE/users_database.yml" "$AUTHELIA_JWT_SECRET_FILE" "$AUTHELIA_STORAGE_KEY_FILE" "$AUTHELIA_PASSWORD_FILE" "$AUTHELIA_PASSWORD_HASH_FILE"
+chmod 0600 "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_STATE/users_database.yml" "$AUTHELIA_JWT_SECRET_FILE" "$AUTHELIA_STORAGE_KEY_FILE" "$AUTHELIA_PASSWORD_FILE" "$AUTHELIA_PASSWORD_HASH_FILE"
+chown root:root "$AUTHELIA_CREDENTIALS_FILE"
+chmod 0600 "$AUTHELIA_CREDENTIALS_FILE"
+"$BUNDLE_ROOT/share/theau-vps/authelia-package/bin/authelia" config validate --config "$AUTHELIA_STATE/configuration.yml"
 
 python3 - <<'PY'
 import json
@@ -139,6 +271,14 @@ http_conf = bundle_root / "share/theau-vps/nginx/site-http.conf"
 cert_path = Path(f"/etc/letsencrypt/live/{host['domain']}/fullchain.pem")
 selected = https_conf if cert_path.exists() else http_conf
 Path("/etc/theau-vps/nginx/sites-enabled/theau-vps.conf").write_text(selected.read_text(encoding="utf-8"), encoding="utf-8")
+
+service_https_conf = bundle_root / "share/theau-vps/nginx/services-https.conf"
+service_http_conf = bundle_root / "share/theau-vps/nginx/services-http.conf"
+service_domains = host.get("serviceDomains", {})
+service_cert_name = service_domains.get("certName", "theau-net-services")
+service_cert_path = Path(f"/etc/letsencrypt/live/{service_cert_name}/fullchain.pem")
+selected_services = service_https_conf if service_cert_path.exists() else service_http_conf
+Path("/etc/theau-vps/nginx/sites-enabled/theau-net-services.conf").write_text(selected_services.read_text(encoding="utf-8"), encoding="utf-8")
 PY
 
 cp "$BUNDLE_ROOT/share/theau-vps/ssh/60-theau-vps.conf" /etc/ssh/sshd_config.d/60-theau-vps.conf
@@ -150,6 +290,7 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-firewall.service" /etc/system
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wireguard.service" /etc/systemd/system/theau-vps-wireguard.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-nginx.service" /etc/systemd/system/theau-vps-nginx.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wgdashboard.service" /etc/systemd/system/theau-vps-wgdashboard.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-authelia.service" /etc/systemd/system/theau-vps-authelia.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
@@ -186,11 +327,12 @@ PY
 sysctl --system >/dev/null
 /usr/sbin/sshd -t
 systemctl daemon-reload
-systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
-systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
+systemctl restart theau-vps-authelia.service
 systemctl restart theau-vps-nginx.service
 systemctl restart theau-vps-iperf3.service
 systemctl restart theau-vps-rustdesk-hbbs.service

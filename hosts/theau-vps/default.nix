@@ -10,6 +10,12 @@ in
   timezone = "Europe/Brussels";
   domain = "theau-vps.duckdns.org";
   acmeEmail = "theau.pauwels@gmail.com";
+  serviceDomains = {
+    authelia = "authelia.theau.net";
+    coolify = "coolify.theau.net";
+    wg = "wg.theau.net";
+    certName = "theau-net-services";
+  };
 
   adminUser = "theau";
   adminUserHome = "/home/theau";

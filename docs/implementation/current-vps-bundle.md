@@ -155,6 +155,8 @@ Expected generated configuration entries were present:
 - `share/theau-vps/nginx/nginx.conf`
 - `share/theau-vps/nginx/site-http.conf`
 - `share/theau-vps/nginx/site-https.conf`
+- `share/theau-vps/nginx/services-http.conf`
+- `share/theau-vps/nginx/services-https.conf`
 - `share/theau-vps/wg-dashboard.ini.template`
 
 Expected systemd units were present:
@@ -163,6 +165,7 @@ Expected systemd units were present:
 - `theau-vps-wireguard.service`
 - `theau-vps-nginx.service`
 - `theau-vps-wgdashboard.service`
+- `theau-vps-authelia.service`
 - `theau-vps-certbot-renew.service`
 - `theau-vps-certbot-renew.timer`
 - `theau-vps-iperf3.service`
@@ -171,7 +174,7 @@ Expected systemd units were present:
 
 Expected package symlinks were present for WGDashboard, Nginx, certbot,
 nftables, WireGuard tools, iperf3, systemd, iproute2, OpenSSH, Python,
-coreutils, procps, bash, gnused, and RustDesk server.
+coreutils, procps, bash, gnused, RustDesk server, Authelia, and OpenSSL.
 
 ## Service Mapping
 
@@ -183,6 +186,7 @@ The current services are mapped to source files as follows:
 | WireGuard server | `hosts/theau-vps/default.nix`, `hosts/theau-vps/peers.nix`, encrypted WireGuard secrets | `/etc/wireguard/wg0.conf`, `theau-vps-wireguard.service` |
 | WGDashboard | `hosts/theau-vps/default.nix`, `packages/wgdashboard/default.nix`, `packages/wgdashboard/files/*`, encrypted WGDashboard secrets | `/var/lib/wgdashboard/wg-dashboard.ini`, `/var/lib/wgdashboard/db/wgdashboard.db`, `theau-vps-wgdashboard.service` |
 | Nginx reverse proxy | `packages/bundle/default.nix` generated config from `hostSpec` | `/etc/theau-vps/nginx/nginx.conf`, `/etc/theau-vps/nginx/sites-enabled/theau-vps.conf`, `theau-vps-nginx.service` |
+| Authelia | `hostSpec.serviceDomains`, generated runtime secrets | `/opt/theau-vps/state/authelia`, `theau-vps-authelia.service` |
 | nftables firewall and NAT | `hostSpec.firewall`, `hostSpec.publicInterface`, `hostSpec.wireguard` | `/etc/theau-vps/nftables.conf`, `theau-vps-firewall.service` |
 | sysctl forwarding and rp_filter | `packages/bundle/default.nix` | `/etc/sysctl.d/90-theau-vps.conf` |
 | iperf3 | `hostSpec.iperf3` | `theau-vps-iperf3.service` |
@@ -260,6 +264,36 @@ successful deploy hook.
 
 Initial issuance is handled manually with `deploy/issue-certificate.sh`, which
 runs certbot through the package symlink inside `/opt/theau-vps/current`.
+
+The `theau.net` service certificate is issued separately with cert name
+`theau-net-services`. Before issuing it, these DNS records must point to
+`82.165.20.195`:
+
+- `authelia.theau.net`
+- `coolify.theau.net`
+- `wg.theau.net`
+
+Use:
+
+```bash
+./deploy/issue-theau-net-services-certificate.sh
+./deploy/push-generation.sh
+```
+
+### Authelia
+
+Authelia listens on `127.0.0.1:9091`. Activation generates runtime-only secrets
+and a bootstrap user under `/opt/theau-vps/state/authelia`. The bootstrap
+credential file is root-readable only:
+
+```text
+/opt/theau-vps/state/authelia/admin-credentials.txt
+```
+
+Nginx protects `coolify.theau.net` and `wg.theau.net` through Authelia once the
+`theau-net-services` certificate exists and the HTTPS service vhost is active.
+The main Nginx site also installs a `default_server` that returns 404 for
+hostnames not declared in the VPS bundle.
 
 ### RustDesk OSS
 

@@ -10,6 +10,20 @@ let
   udpPorts = lib.concatMapStringsSep ", " toString hostSpec.firewall.udpPorts;
   peerEndpointAllowedIps = lib.concatStringsSep ", " hostSpec.wireguard.peerEndpointAllowedIps;
   publicPeerJson = builtins.toJSON hostSpec.wireguard.peers;
+  serviceDomains =
+    hostSpec.serviceDomains or {
+      authelia = "authelia.theau.net";
+      coolify = "coolify.theau.net";
+      wg = "wg.theau.net";
+      certName = "theau-net-services";
+    };
+  serviceDomainNames = [
+    serviceDomains.authelia
+    serviceDomains.coolify
+    serviceDomains.wg
+  ];
+  serviceServerNames = lib.concatStringsSep " " serviceDomainNames;
+  serviceCertPath = "/etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem";
   sshdConfig = ''
     Port ${toString hostSpec.ssh.port}
     PermitRootLogin no
@@ -83,6 +97,11 @@ let
       keepalive_timeout 65;
       client_max_body_size 16m;
 
+      map $http_upgrade $connection_upgrade {
+        default upgrade;
+        "" close;
+      }
+
       client_body_temp_path /var/cache/theau-vps/nginx/client_body;
       proxy_temp_path /var/cache/theau-vps/nginx/proxy;
       fastcgi_temp_path /var/cache/theau-vps/nginx/fastcgi;
@@ -94,6 +113,14 @@ let
   '';
 
   nginxSiteHttp = ''
+    server {
+      listen 80 default_server;
+      listen [::]:80 default_server;
+      server_name _;
+
+      return 404;
+    }
+
     server {
       listen 80;
       listen [::]:80;
@@ -114,7 +141,80 @@ let
     }
   '';
 
+  nginxServicesHttp = ''
+    server {
+      listen 80;
+      listen [::]:80;
+      server_name ${serviceServerNames};
+
+      location /.well-known/acme-challenge/ {
+        root /var/lib/theau-vps/acme-challenge;
+      }
+
+      location / {
+        return 308 https://$host$request_uri;
+      }
+    }
+  '';
+
+  proxyHeaders = ''
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Uri $request_uri;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  '';
+
+  autheliaAuthLocation = ''
+    location /internal/authelia/authz {
+      internal;
+      proxy_pass http://127.0.0.1:9091/api/authz/auth-request;
+      proxy_pass_request_body off;
+      proxy_set_header Content-Length "";
+      proxy_set_header X-Original-Method $request_method;
+      proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
+      proxy_set_header X-Forwarded-Method $request_method;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Host $http_host;
+      proxy_set_header X-Forwarded-URI $request_uri;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Real-IP $remote_addr;
+    }
+  '';
+
+  autheliaProtectedLocation = upstream: ''
+    ${autheliaAuthLocation}
+
+    location / {
+      auth_request /internal/authelia/authz;
+      auth_request_set $redirection_url $upstream_http_location;
+      error_page 401 =302 $redirection_url;
+      auth_request_set $user $upstream_http_remote_user;
+      auth_request_set $groups $upstream_http_remote_groups;
+      auth_request_set $name $upstream_http_remote_name;
+      auth_request_set $email $upstream_http_remote_email;
+      proxy_set_header Remote-User $user;
+      proxy_set_header Remote-Groups $groups;
+      proxy_set_header Remote-Name $name;
+      proxy_set_header Remote-Email $email;
+      ${proxyHeaders}
+      proxy_pass ${upstream};
+    }
+  '';
+
   nginxSiteHttps = ''
+    server {
+      listen 80 default_server;
+      listen [::]:80 default_server;
+      server_name _;
+
+      return 404;
+    }
+
     server {
       listen 80;
       listen [::]:80;
@@ -127,6 +227,22 @@ let
       location / {
         return 301 https://$host$request_uri;
       }
+    }
+
+    server {
+      listen 443 ssl http2 default_server;
+      listen [::]:443 ssl http2 default_server;
+      server_name _;
+
+      ssl_certificate /etc/letsencrypt/live/${hostSpec.domain}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${hostSpec.domain}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUVPS:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      return 404;
     }
 
     server {
@@ -159,6 +275,88 @@ let
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
       }
+    }
+  '';
+
+  nginxServicesHttps = ''
+    server {
+      listen 80;
+      listen [::]:80;
+      server_name ${serviceServerNames};
+
+      location /.well-known/acme-challenge/ {
+        root /var/lib/theau-vps/acme-challenge;
+      }
+
+      location / {
+        return 308 https://$host$request_uri;
+      }
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.authelia};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      location / {
+        ${proxyHeaders}
+        proxy_pass http://127.0.0.1:9091;
+      }
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.wg};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://${hostSpec.wgdashboard.listenAddress}:${toString hostSpec.wgdashboard.listenPort}"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.coolify};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:8000"}
     }
   '';
 
@@ -262,6 +460,29 @@ let
     NoNewPrivileges=yes
     PrivateTmp=yes
     LimitNOFILE=65535
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  autheliaUnit = ''
+    [Unit]
+    Description=theau-vps Authelia
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=authelia
+    Group=authelia
+    WorkingDirectory=/opt/theau-vps/state/authelia
+    ExecStart=${pkgs.authelia}/bin/authelia --config /opt/theau-vps/state/authelia/configuration.yml
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
 
     [Install]
     WantedBy=multi-user.target
@@ -433,6 +654,14 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${nginxSiteHttps}
   EOF
 
+  cat > "$out/share/theau-vps/nginx/services-http.conf" <<'EOF'
+  ${nginxServicesHttp}
+  EOF
+
+  cat > "$out/share/theau-vps/nginx/services-https.conf" <<'EOF'
+  ${nginxServicesHttps}
+  EOF
+
   cat > "$out/share/theau-vps/wg-dashboard.ini.template" <<'EOF'
   ${wgDashboardIniTemplate}
   EOF
@@ -451,6 +680,10 @@ pkgs.runCommand "theau-vps-bundle" { } ''
 
   cat > "$out/share/theau-vps/systemd/theau-vps-wgdashboard.service" <<'EOF'
   ${wgdashboardUnit}
+  EOF
+
+  cat > "$out/share/theau-vps/systemd/theau-vps-authelia.service" <<'EOF'
+  ${autheliaUnit}
   EOF
 
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'
@@ -488,4 +721,6 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ln -s ${pkgs.bash} "$out/share/theau-vps/bash-package"
   ln -s ${pkgs.gnused} "$out/share/theau-vps/gnused-package"
   ln -s ${pkgs.rustdesk-server} "$out/share/theau-vps/rustdesk-server-package"
+  ln -s ${pkgs.authelia} "$out/share/theau-vps/authelia-package"
+  ln -s ${pkgs.openssl} "$out/share/theau-vps/openssl-package"
 ''
