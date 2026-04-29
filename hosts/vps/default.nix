@@ -14,6 +14,7 @@
     ../../modules/services/identity-provider.nix
     ../../modules/services/rustdesk.nix
     ../../modules/services/smtp.nix
+    ../../modules/services/user-management.nix
     ../../modules/observability/exporters.nix
   ];
 
@@ -35,14 +36,32 @@
   };
 
   personalInfra.services.caddy.enable = true;
-  personalInfra.services.identityProvider.enable = true;
-  personalInfra.services.authelia = {
+  personalInfra.services.userManagement = {
     enable = true;
-    services = {
-      "users.theau-vps.duckdns.org".groups = [ "super-admin" ];
-      "jellyfin.theau-vps.duckdns.org".groups = [ ];
-      "jellyseerr.theau-vps.duckdns.org".groups = [ ];
-      "seedbox.theau-vps.duckdns.org".groups = [ "super-admin" ];
+    authelia.domain = "auth.theau-vps.duckdns.org";
+    lldap.domain = "users.theau-vps.duckdns.org";
+    accessPolicies = {
+      "users.theau-vps.duckdns.org" = {
+        policy = "two_factor";
+        groups = [ "admins" ];
+      };
+      "jellyfin.theau-vps.duckdns.org".groups = [
+        "media-users"
+        "media-admins"
+        "admins"
+      ];
+      "jellyseerr.theau-vps.duckdns.org".groups = [
+        "media-users"
+        "media-admins"
+        "admins"
+      ];
+      "seedbox.theau-vps.duckdns.org" = {
+        policy = "two_factor";
+        groups = [
+          "media-admins"
+          "admins"
+        ];
+      };
     };
   };
 

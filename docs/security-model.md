@@ -35,7 +35,7 @@ public exposure is required.
 | iperf3 | `5201/tcp` | public for now | operational test service |
 | Headscale | `headscale.theau-vps.duckdns.org` | public HTTPS | Headscale OIDC through Authelia |
 | Authelia | `auth.theau-vps.duckdns.org` | public HTTPS | central login/2FA and service authorization |
-| LLDAP user manager | `users.theau-vps.duckdns.org` | SSO-protected | Authelia `super-admin` only |
+| LLDAP user manager | `users.theau.net` / `users.theau-vps.duckdns.org` | SSO-protected | Authelia `admins` only |
 | Jellyfin | `jellyfin.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
 | Jellyseerr | `jellyseerr.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
 | Seedbox UI | `seedbox.theau-vps.duckdns.org` | SSO-protected | Authelia `super-admin` only |
@@ -50,7 +50,9 @@ the existing production tunnel and torrent egress path. Headscale is the future
 control plane for user devices and service nodes.
 
 Authelia is the single authorization point for private web services. LLDAP owns
-users and groups; Caddy only asks Authelia whether a request may reach a service.
+users and groups; the edge proxy only asks Authelia whether a request may reach
+a service. Service access is granted by LLDAP group membership, for example
+`wg-admin` for WGDashboard and `paas-admins` for Coolify.
 
 ## SSH Access Models
 

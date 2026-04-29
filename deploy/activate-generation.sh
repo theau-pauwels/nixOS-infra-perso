@@ -85,6 +85,12 @@ host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 print(host.get("serviceDomains", {}).get("wg", "wg.theau.net"))
 PY
 )"
+USERS_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("users", "users.theau.net"))
+PY
+)"
 
 install -d -m 0755 /etc/theau-vps /etc/theau-vps/nginx /etc/theau-vps/nginx/sites-enabled /etc/wireguard
 install -d -m 0755 /var/lib/theau-vps /var/lib/theau-vps/acme-challenge /var/lib/wgdashboard /var/lib/wgdashboard/db /var/lib/wgdashboard/log /var/lib/wgdashboard/plugins
@@ -108,8 +114,17 @@ if ! id -u authelia >/dev/null 2>&1; then
   useradd --system --gid authelia --home-dir /opt/theau-vps/state/authelia --shell /usr/sbin/nologin --no-create-home authelia
 fi
 
+if ! getent group lldap >/dev/null; then
+  groupadd --system lldap
+fi
+
+if ! id -u lldap >/dev/null 2>&1; then
+  useradd --system --gid lldap --home-dir /opt/theau-vps/state/lldap --shell /usr/sbin/nologin --no-create-home lldap
+fi
+
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia/assets
+install -d -o lldap -g lldap -m 0750 /opt/theau-vps/state/lldap
 
 AUTHELIA_STATE="/opt/theau-vps/state/authelia"
 AUTHELIA_PASSWORD_FILE="$AUTHELIA_STATE/admin-password"
@@ -117,6 +132,13 @@ AUTHELIA_PASSWORD_HASH_FILE="$AUTHELIA_STATE/admin-password-hash"
 AUTHELIA_CREDENTIALS_FILE="$AUTHELIA_STATE/admin-credentials.txt"
 AUTHELIA_JWT_SECRET_FILE="$AUTHELIA_STATE/jwt-secret"
 AUTHELIA_STORAGE_KEY_FILE="$AUTHELIA_STATE/storage-encryption-key"
+AUTHELIA_LDAP_PASSWORD_FILE="$AUTHELIA_STATE/ldap-password"
+LLDAP_STATE="/opt/theau-vps/state/lldap"
+LLDAP_ADMIN_PASSWORD_FILE="$LLDAP_STATE/admin-password"
+LLDAP_CREDENTIALS_FILE="$LLDAP_STATE/admin-credentials.txt"
+LLDAP_JWT_SECRET_FILE="$LLDAP_STATE/jwt-secret"
+LLDAP_SERVER_KEY_SEED_FILE="$LLDAP_STATE/server-key-seed"
+LLDAP_CONFIG_FILE="$LLDAP_STATE/lldap_config.toml"
 
 if [[ ! -s "$AUTHELIA_PASSWORD_FILE" ]]; then
   umask 077
@@ -133,16 +155,34 @@ if [[ ! -s "$AUTHELIA_STORAGE_KEY_FILE" ]]; then
   "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 32 > "$AUTHELIA_STORAGE_KEY_FILE"
 fi
 
+if [[ ! -s "$LLDAP_ADMIN_PASSWORD_FILE" ]]; then
+  install -o lldap -g lldap -m 0600 "$AUTHELIA_PASSWORD_FILE" "$LLDAP_ADMIN_PASSWORD_FILE"
+fi
+
+if [[ ! -s "$AUTHELIA_LDAP_PASSWORD_FILE" ]]; then
+  install -o authelia -g authelia -m 0600 "$LLDAP_ADMIN_PASSWORD_FILE" "$AUTHELIA_LDAP_PASSWORD_FILE"
+fi
+
+if [[ ! -s "$LLDAP_JWT_SECRET_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 32 > "$LLDAP_JWT_SECRET_FILE"
+fi
+
+if [[ ! -s "$LLDAP_SERVER_KEY_SEED_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 32 > "$LLDAP_SERVER_KEY_SEED_FILE"
+fi
+
 if [[ ! -s "$AUTHELIA_PASSWORD_HASH_FILE" ]]; then
   password="$(cat "$AUTHELIA_PASSWORD_FILE")"
   "$BUNDLE_ROOT/share/theau-vps/authelia-package/bin/authelia" crypto hash generate argon2 --password "$password" \
     | sed -n 's/^Digest: //p' > "$AUTHELIA_PASSWORD_HASH_FILE"
 fi
 
-password="$(cat "$AUTHELIA_PASSWORD_FILE")"
-password_hash="$(cat "$AUTHELIA_PASSWORD_HASH_FILE")"
+password="$(cat "$LLDAP_ADMIN_PASSWORD_FILE")"
 jwt_secret="$(cat "$AUTHELIA_JWT_SECRET_FILE")"
 storage_key="$(cat "$AUTHELIA_STORAGE_KEY_FILE")"
+lldap_server_key_seed="$(cat "$LLDAP_SERVER_KEY_SEED_FILE")"
 
 cat > "$AUTHELIA_CREDENTIALS_FILE" <<EOF
 url: https://${AUTHELIA_DOMAIN}
@@ -150,15 +190,25 @@ username: theau
 password: ${password}
 EOF
 
-cat > "$AUTHELIA_STATE/users_database.yml" <<EOF
-users:
-  theau:
-    disabled: false
-    displayname: Theau
-    password: "${password_hash}"
-    email: theau@example.invalid
-    groups:
-      - admins
+cat > "$LLDAP_CREDENTIALS_FILE" <<EOF
+url: https://${USERS_DOMAIN}
+username: theau
+password: ${password}
+EOF
+
+cat > "$LLDAP_CONFIG_FILE" <<EOF
+ldap_host = "127.0.0.1"
+ldap_port = 3890
+http_host = "127.0.0.1"
+http_port = 17170
+http_url = "https://${USERS_DOMAIN}"
+ldap_base_dn = "dc=theau,dc=net"
+ldap_user_dn = "theau"
+ldap_user_email = "theau@example.invalid"
+ldap_user_pass_file = "${LLDAP_ADMIN_PASSWORD_FILE}"
+database_url = "sqlite://${LLDAP_STATE}/users.db?mode=rwc"
+jwt_secret_file = "${LLDAP_JWT_SECRET_FILE}"
+server_key_seed = "${lldap_server_key_seed}"
 EOF
 
 cat > "$AUTHELIA_STATE/configuration.yml" <<EOF
@@ -170,21 +220,31 @@ theme: dark
 totp:
   issuer: theau.net
 authentication_backend:
-  file:
-    path: ${AUTHELIA_STATE}/users_database.yml
+  ldap:
+    implementation: lldap
+    address: ldap://127.0.0.1:3890
+    base_dn: dc=theau,dc=net
+    additional_users_dn: ou=people
+    additional_groups_dn: ou=groups
+    user: uid=theau,ou=people,dc=theau,dc=net
 access_control:
   default_policy: deny
   rules:
     - domain: ${AUTHELIA_DOMAIN}
       policy: one_factor
+    - domain: ${USERS_DOMAIN}
+      policy: two_factor
+      subject:
+        - group:admins
     - domain: ${COOLIFY_DOMAIN}
-      policy: one_factor
+      policy: two_factor
       subject:
         - group:admins
+        - group:paas-admins
     - domain: ${WG_DOMAIN}
-      policy: one_factor
+      policy: two_factor
       subject:
-        - group:admins
+        - group:wg-admin
 session:
   cookies:
     - domain: theau.net
@@ -202,11 +262,14 @@ identity_validation:
     jwt_secret: ${jwt_secret}
 EOF
 
-chown authelia:authelia "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_STATE/users_database.yml" "$AUTHELIA_JWT_SECRET_FILE" "$AUTHELIA_STORAGE_KEY_FILE" "$AUTHELIA_PASSWORD_FILE" "$AUTHELIA_PASSWORD_HASH_FILE"
-chmod 0600 "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_STATE/users_database.yml" "$AUTHELIA_JWT_SECRET_FILE" "$AUTHELIA_STORAGE_KEY_FILE" "$AUTHELIA_PASSWORD_FILE" "$AUTHELIA_PASSWORD_HASH_FILE"
+chown authelia:authelia "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_JWT_SECRET_FILE" "$AUTHELIA_STORAGE_KEY_FILE" "$AUTHELIA_PASSWORD_FILE" "$AUTHELIA_PASSWORD_HASH_FILE" "$AUTHELIA_LDAP_PASSWORD_FILE"
+chmod 0600 "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_JWT_SECRET_FILE" "$AUTHELIA_STORAGE_KEY_FILE" "$AUTHELIA_PASSWORD_FILE" "$AUTHELIA_PASSWORD_HASH_FILE" "$AUTHELIA_LDAP_PASSWORD_FILE"
+chown lldap:lldap "$LLDAP_CONFIG_FILE" "$LLDAP_ADMIN_PASSWORD_FILE" "$LLDAP_JWT_SECRET_FILE" "$LLDAP_SERVER_KEY_SEED_FILE"
+chmod 0600 "$LLDAP_CONFIG_FILE" "$LLDAP_ADMIN_PASSWORD_FILE" "$LLDAP_JWT_SECRET_FILE" "$LLDAP_SERVER_KEY_SEED_FILE"
 chown root:root "$AUTHELIA_CREDENTIALS_FILE"
 chmod 0600 "$AUTHELIA_CREDENTIALS_FILE"
-"$BUNDLE_ROOT/share/theau-vps/authelia-package/bin/authelia" config validate --config "$AUTHELIA_STATE/configuration.yml"
+chown root:root "$LLDAP_CREDENTIALS_FILE"
+chmod 0600 "$LLDAP_CREDENTIALS_FILE"
 
 python3 - <<'PY'
 import json
@@ -291,6 +354,7 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wireguard.service" /etc/syste
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-nginx.service" /etc/systemd/system/theau-vps-nginx.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wgdashboard.service" /etc/systemd/system/theau-vps-wgdashboard.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-authelia.service" /etc/systemd/system/theau-vps-authelia.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-lldap.service" /etc/systemd/system/theau-vps-lldap.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
@@ -327,11 +391,35 @@ PY
 sysctl --system >/dev/null
 /usr/sbin/sshd -t
 systemctl daemon-reload
-systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
-systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
+systemctl restart theau-vps-lldap.service
+
+for _ in {1..30}; do
+  if "$BUNDLE_ROOT/share/theau-vps/lldap-package/bin/lldap" healthcheck --config-file "$LLDAP_CONFIG_FILE" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+"$BUNDLE_ROOT/share/theau-vps/lldap-package/bin/lldap" healthcheck --config-file "$LLDAP_CONFIG_FILE" >/dev/null
+
+lldap_password="$(cat "$LLDAP_ADMIN_PASSWORD_FILE")"
+lldap_cli=(env "LLDAP_PASSWORD=$lldap_password" "$BUNDLE_ROOT/share/theau-vps/lldap-cli-package/bin/lldap-cli" -H http://127.0.0.1:17170 -D theau)
+"${lldap_cli[@]}" group list >/dev/null
+
+for group in admins infra-admins media-users media-admins git-users git-admins paas-users paas-admins wiki-users monitoring-users service-accounts wg-admin; do
+  "${lldap_cli[@]}" group add "$group" >/dev/null 2>&1 || true
+done
+
+for group in admins infra-admins paas-admins git-admins media-admins monitoring-users wiki-users wg-admin; do
+  "${lldap_cli[@]}" user group add theau "$group" >/dev/null 2>&1 || true
+done
+
+AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE="$AUTHELIA_LDAP_PASSWORD_FILE" \
+  "$BUNDLE_ROOT/share/theau-vps/authelia-package/bin/authelia" config validate --config "$AUTHELIA_STATE/configuration.yml"
 systemctl restart theau-vps-authelia.service
 systemctl restart theau-vps-nginx.service
 systemctl restart theau-vps-iperf3.service

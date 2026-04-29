@@ -14,12 +14,14 @@ let
     hostSpec.serviceDomains or {
       authelia = "authelia.theau.net";
       coolify = "coolify.theau.net";
+      users = "users.theau.net";
       wg = "wg.theau.net";
       certName = "theau-net-services";
     };
   serviceDomainNames = [
     serviceDomains.authelia
     serviceDomains.coolify
+    serviceDomains.users
     serviceDomains.wg
   ];
   serviceServerNames = lib.concatStringsSep " " serviceDomainNames;
@@ -341,6 +343,27 @@ let
     server {
       listen 443 ssl http2;
       listen [::]:443 ssl http2;
+      server_name ${serviceDomains.users};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:17170"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
       server_name ${serviceDomains.coolify};
 
       ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
@@ -468,15 +491,39 @@ let
   autheliaUnit = ''
     [Unit]
     Description=theau-vps Authelia
-    After=network-online.target
-    Wants=network-online.target
+    After=network-online.target theau-vps-lldap.service
+    Wants=network-online.target theau-vps-lldap.service
 
     [Service]
     Type=simple
     User=authelia
     Group=authelia
     WorkingDirectory=/opt/theau-vps/state/authelia
+    Environment=AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE=/opt/theau-vps/state/authelia/ldap-password
     ExecStart=${pkgs.authelia}/bin/authelia --config /opt/theau-vps/state/authelia/configuration.yml
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  lldapUnit = ''
+    [Unit]
+    Description=theau-vps LLDAP
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=lldap
+    Group=lldap
+    WorkingDirectory=/opt/theau-vps/state/lldap
+    ExecStart=${pkgs.lldap}/bin/lldap run --config-file /opt/theau-vps/state/lldap/lldap_config.toml
     Restart=on-failure
     RestartSec=5
     NoNewPrivileges=yes
@@ -686,6 +733,10 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${autheliaUnit}
   EOF
 
+  cat > "$out/share/theau-vps/systemd/theau-vps-lldap.service" <<'EOF'
+  ${lldapUnit}
+  EOF
+
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'
   ${certbotRenewService}
   EOF
@@ -722,5 +773,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ln -s ${pkgs.gnused} "$out/share/theau-vps/gnused-package"
   ln -s ${pkgs.rustdesk-server} "$out/share/theau-vps/rustdesk-server-package"
   ln -s ${pkgs.authelia} "$out/share/theau-vps/authelia-package"
+  ln -s ${pkgs.lldap} "$out/share/theau-vps/lldap-package"
+  ln -s ${pkgs.lldap-cli} "$out/share/theau-vps/lldap-cli-package"
   ln -s ${pkgs.openssl} "$out/share/theau-vps/openssl-package"
 ''

@@ -57,7 +57,8 @@ Authelia owns service access decisions:
 - default policy is deny
 - service routes are explicitly listed in `personalInfra.services.authelia.services`
 - empty `groups` means any authenticated user
-- `groups = [ "super-admin" ]` restricts access to infrastructure admins
+- `groups = [ "admins" ]` restricts access to infrastructure admins
+- `groups = [ "wg-admin" ]` restricts WGDashboard access to WireGuard admins
 - `theau` is the initial LLDAP super-admin account placeholder
 
 LLDAP owns user records with at least:
@@ -67,7 +68,7 @@ LLDAP owns user records with at least:
 - email
 
 The LLDAP web UI is reachable only through `users.theau-vps.duckdns.org` and is
-restricted by Authelia to `super-admin`.
+restricted by Authelia to `admins`.
 
 ## Secrets
 

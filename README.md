@@ -90,8 +90,10 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - WGDashboard behind local Gunicorn on `127.0.0.1:10086`
 - RustDesk Server OSS with `hbbs` and `hbbr`
 - Nginx reverse proxy on `80` and later `443`
+- LLDAP on `127.0.0.1:17170` with LDAP on `127.0.0.1:3890`
 - Authelia on `127.0.0.1:9091`
-- prepared public vhosts for `authelia.theau.net`, `coolify.theau.net`, and `wg.theau.net`
+- prepared public vhosts for `authelia.theau.net`, `coolify.theau.net`, `users.theau.net`, and `wg.theau.net`
+- Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard, `paas-admins` for Coolify, `admins` for LLDAP)
 - a default Nginx vhost returning 404 for unlisted hostnames
 - nftables firewall
 - iperf3
@@ -285,6 +287,7 @@ certificate:
 ```text
 authelia.theau.net A 82.165.20.195
 coolify.theau.net  A 82.165.20.195
+users.theau.net    A 82.165.20.195
 wg.theau.net       A 82.165.20.195
 ```
 
@@ -300,6 +303,7 @@ export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 Authelia bootstrap credentials are generated on IONOS-VPS2 at:
 
 ```text
+/opt/theau-vps/state/lldap/admin-credentials.txt
 /opt/theau-vps/state/authelia/admin-credentials.txt
 ```
 

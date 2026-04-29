@@ -14,8 +14,9 @@ Internet -> VPS Caddy HTTPS edge -> Authelia ForwardAuth -> Coolify admin UI
 Internet -> VPS Caddy/Traefik routing -> deployed app containers
 ```
 
-Coolify's admin UI must be protected by Authelia or VPN. Public applications
-must be intentionally exposed per app.
+Coolify's admin UI must be protected by Authelia or VPN. In the central
+LLDAP-backed policy, access is granted to `paas-admins` and `admins`. Public
+applications must be intentionally exposed per app.
 
 ## Host Placement
 

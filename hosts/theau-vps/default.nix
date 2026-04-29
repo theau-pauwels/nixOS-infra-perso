@@ -13,6 +13,7 @@ in
   serviceDomains = {
     authelia = "authelia.theau.net";
     coolify = "coolify.theau.net";
+    users = "users.theau.net";
     wg = "wg.theau.net";
     certName = "theau-net-services";
   };
@@ -60,7 +61,7 @@ in
     listenAddress = "127.0.0.1";
     listenPort = 10086;
     appPrefix = "";
-    authRequired = true;
+    authRequired = false;
     adminUser = "admin";
     theme = "dark";
     language = "en-US";

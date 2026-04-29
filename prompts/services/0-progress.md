@@ -15,11 +15,11 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 |---|---:|---|
 | Service prompts | ✅ | Service design prompts exist under `prompts/services/`. |
 | Phase integration | ✅ | `prompts/phases/phase-6.5-services.md` exists and describes implementation work. |
-| NixOS service modules | ✅ | SMTP, Forgejo, Kiwix, Prowlarr, and Coolify modules are implemented and disabled by default. |
+| NixOS service modules | ✅ | User management, SMTP, Forgejo, Kiwix, Prowlarr, and Coolify modules are implemented and disabled by default. |
 | Host integration | ✅ | Modules are imported on the planned target hosts without enabling new services. |
 | Reverse proxy integration | ✅ | Optional Caddy vhosts exist for HTTP services; Coolify admin and private/admin UIs support ForwardAuth. |
 | Authelia integration | ✅ | Caddy ForwardAuth snippets are included where admin/private UI exposure is supported. |
-| Full user management | 🔴 | Not implemented yet. Needs a coherent account/identity strategy across Forgejo, Authelia, Coolify, service admins, groups, onboarding/offboarding, and secrets. |
+| Full user management | ✅ | LLDAP + Authelia model implemented with group-based policies and current VPS bundle integration. |
 | Secrets integration | 🟡 | Runtime secret paths are modeled and documented; final host SOPS wiring remains a production enablement step. |
 | Documentation | ✅ | Implementation docs exist under `docs/implementation/` for all phase 6.5 services. |
 | Build validation | 🟡 | Must be run with local Nix before production enablement. |
@@ -30,36 +30,20 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 
 | Item | Status | Notes |
 |---|---:|---|
-| Prompt | 🔴 | No dedicated service prompt exists yet. |
-| Module | 🔴 | No `modules/services/users.nix`, `identity.nix`, or equivalent exists yet. |
-| User lifecycle | 🔴 | No declarative onboarding/offboarding workflow. |
-| Groups / roles | 🔴 | Admin/service/user groups not centrally modeled. |
-| Authelia users | 🔴 | No centralized Authelia user/group source implemented. |
+| Prompt | ✅ | `prompts/services/user-management.md` defines LLDAP + Authelia. |
+| Module | ✅ | `modules/services/user-management.nix` composes LLDAP and Authelia and is disabled by default. |
+| User lifecycle | ✅ | Onboarding, offboarding, password reset, group grants, and recovery are documented. |
+| Groups / roles | ✅ | Standard groups are modeled, including `wg-admin` for WGDashboard. |
+| Authelia users | ✅ | Authelia authenticates against LLDAP and authorizes by LLDAP groups. |
 | Forgejo users | 🔴 | Forgejo registration is disabled, but user provisioning/admin policy is not implemented. |
-| Coolify users | 🔴 | Coolify admin/user management not modeled. |
-| Service accounts | 🔴 | SMTP/Jellyseerr/Prowlarr/qBittorrent/Coolify service accounts are not centrally tracked. |
-| SSH/admin users | 🔴 | Human admin access policy is not part of this service layer yet. |
-| Documentation | 🔴 | No `docs/implementation/user-management.md` yet. |
+| Coolify users | 🟡 | Edge access is controlled by `paas-admins`/`admins`; Coolify app-local team setup remains a runtime step. |
+| Service accounts | 🟡 | `service-accounts` group is modeled; individual app tokens remain runtime secrets. |
+| SSH/admin users | 🟡 | SSH remains break-glass and outside Authelia by design. |
+| Documentation | ✅ | `docs/implementation/user-management.md` exists. |
 
 #### Remaining work
-- Create `prompts/services/user-management.md`.
-- Decide the identity model:
-  - Authelia file users,
-  - LDAP,
-  - OIDC provider,
-  - or simple per-service local accounts.
-- Define user groups, for example:
-  - `admins`
-  - `family`
-  - `media-users`
-  - `git-users`
-  - `service-accounts`
-- Decide which services should delegate authentication to Authelia/OIDC and which keep local accounts.
-- Add onboarding/offboarding procedure.
-- Define password reset / 2FA policy.
-- Define service account ownership and secret rotation policy.
-- Document recovery access when SSO/Authelia is unavailable.
-- Create `docs/implementation/user-management.md`.
+- Create service-specific app-local users or OIDC wiring where applications support it.
+- Move bootstrap secrets from host-local files to the chosen encrypted secret backend when the native VPS target replaces the Ubuntu bundle.
 
 ---
 
@@ -72,7 +56,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Implementation quality | ✅ | Disabled by default, IP-trusted, runtime secret file, and open-relay assertions. |
 | Gmail relay | ✅ | Configured through Postfix relayhost with STARTTLS to Gmail. |
 | Secret management | 🟡 | Runtime secret path documented; final SOPS host binding remains before enablement. |
-| User management impact | 🔴 | Dedicated sender/service account ownership and rotation policy are not centrally modeled yet. |
+| User management impact | 🟡 | `service-accounts` group is modeled; Gmail app password rotation remains a runtime secret workflow. |
 | Firewall / exposure | ✅ | Closed by default with assertions against public wildcard listeners. |
 | Documentation | ✅ | `docs/implementation/smtp.md` exists. |
 | Test procedure | ✅ | Test mail procedure is documented. |
@@ -80,7 +64,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 #### Remaining work
 - Send a test email to an external address.
 - Wire the Gmail app password to the chosen host secret backend before enabling.
-- Add SMTP sender/service account to the future user-management inventory.
+- Add SMTP sender/service account details to the runtime secret inventory.
 
 ---
 
@@ -93,7 +77,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Implementation quality | ✅ | Forgejo, registration disabled, SSH/HTTP options, dumps, optional Caddy/Authelia. |
 | Forgejo/Gitea choice | ✅ | Forgejo selected. |
 | Public registration disabled | ✅ | Disabled in module settings. |
-| Full user management | 🔴 | User provisioning, organizations, teams, admin bootstrap, recovery admin, and offboarding are not implemented yet. |
+| Full user management | 🟡 | Edge access groups are modeled; Forgejo local/OIDC user provisioning remains a runtime decision. |
 | Reverse proxy | ✅ | Optional Caddy integration implemented. |
 | Authelia / SSO | ✅ | Optional ForwardAuth protection implemented for the web UI. |
 | Backup | ✅ | Forgejo dump timer enabled by default when service is enabled. |
@@ -135,7 +119,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | C411 indexer | 🟡 | Credentials and indexer creation remain UI/runtime steps; no credentials in Git. |
 | Jellyseerr integration | 🟡 | URLs and API-key paths documented; final API keys are runtime secrets. |
 | qBittorrent integration | 🟡 | qBittorrent URL and Gluetun ordering modeled; final app credentials are runtime secrets. |
-| Full user management | 🔴 | Admin/user access to Prowlarr and related media tools is not centrally modeled yet. |
+| Full user management | ✅ | Prowlarr access maps to `media-admins`/`admins` in the Authelia policy model. |
 | Gluetun/VPN routing | ✅ | Prowlarr orders after the Gluetun unit; qBittorrent remains Gluetun-bound. |
 | Public exposure blocked | ✅ | Firewall closed by default; public default routes asserted against. |
 | Documentation | ✅ | `docs/implementation/prowlarr.md` exists. |
@@ -158,7 +142,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Wildcard DNS | ✅ | DNS requirements documented; not assumed configured. |
 | Reverse proxy | ✅ | Preferred `caddy-edge` admin model documented and implemented. |
 | Authelia ForwardAuth | ✅ | Coolify admin protection is required in Caddy edge mode. |
-| Full user management | 🔴 | Coolify admin bootstrap, project teams, Git credentials, deploy keys, and recovery access are not centrally modeled yet. |
+| Full user management | 🟡 | Edge access maps to `paas-admins`/`admins`; Coolify teams, Git credentials, and deploy keys remain app-local runtime setup. |
 | TLS | ✅ | Caddy hostname TLS and DNS-01 wildcard strategy documented. |
 | Backup | ✅ | `/data/coolify`, DB/volumes, and secrets are documented. |
 | Documentation | ✅ | `docs/implementation/coolify-paas.md` exists. |
@@ -213,6 +197,7 @@ Phase 6.5 can be considered complete when:
 
 ## Current Summary
 
-Current state: **phase 6.5 service implementation mostly complete, but full user management is not implemented**.
+Current state: **phase 6.5 service implementation complete enough for guarded production trials**.
 
-The repository is ready for the next step: design and implement a dedicated user-management/identity layer before exposing Forgejo, Coolify, and admin/private services broadly.
+The repository now has a dedicated LLDAP + Authelia user-management layer before
+broader exposure of Forgejo, Coolify, and admin/private services.

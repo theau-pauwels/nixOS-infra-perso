@@ -115,6 +115,7 @@ in
         default_2fa_method = lib.mkDefault "totp";
         server.address = cfg.listenAddress;
         authentication_backend.ldap = {
+          implementation = "lldap";
           address = cfg.ldapUrl;
           base_dn = cfg.baseDn;
           additional_users_dn = "ou=people";

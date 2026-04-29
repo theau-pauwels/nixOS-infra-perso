@@ -186,6 +186,7 @@ The current services are mapped to source files as follows:
 | WireGuard server | `hosts/theau-vps/default.nix`, `hosts/theau-vps/peers.nix`, encrypted WireGuard secrets | `/etc/wireguard/wg0.conf`, `theau-vps-wireguard.service` |
 | WGDashboard | `hosts/theau-vps/default.nix`, `packages/wgdashboard/default.nix`, `packages/wgdashboard/files/*`, encrypted WGDashboard secrets | `/var/lib/wgdashboard/wg-dashboard.ini`, `/var/lib/wgdashboard/db/wgdashboard.db`, `theau-vps-wgdashboard.service` |
 | Nginx reverse proxy | `packages/bundle/default.nix` generated config from `hostSpec` | `/etc/theau-vps/nginx/nginx.conf`, `/etc/theau-vps/nginx/sites-enabled/theau-vps.conf`, `theau-vps-nginx.service` |
+| LLDAP | `hostSpec.serviceDomains`, generated runtime secrets | `/opt/theau-vps/state/lldap`, `theau-vps-lldap.service` |
 | Authelia | `hostSpec.serviceDomains`, generated runtime secrets | `/opt/theau-vps/state/authelia`, `theau-vps-authelia.service` |
 | nftables firewall and NAT | `hostSpec.firewall`, `hostSpec.publicInterface`, `hostSpec.wireguard` | `/etc/theau-vps/nftables.conf`, `theau-vps-firewall.service` |
 | sysctl forwarding and rp_filter | `packages/bundle/default.nix` | `/etc/sysctl.d/90-theau-vps.conf` |
@@ -271,6 +272,7 @@ The `theau.net` service certificate is issued separately with cert name
 
 - `authelia.theau.net`
 - `coolify.theau.net`
+- `users.theau.net`
 - `wg.theau.net`
 
 Use:
@@ -280,18 +282,29 @@ Use:
 ./deploy/push-generation.sh
 ```
 
-### Authelia
+### LLDAP And Authelia
 
-Authelia listens on `127.0.0.1:9091`. Activation generates runtime-only secrets
-and a bootstrap user under `/opt/theau-vps/state/authelia`. The bootstrap
-credential file is root-readable only:
+LLDAP listens on `127.0.0.1:17170` for its web UI and `127.0.0.1:3890` for LDAP.
+Authelia listens on `127.0.0.1:9091` and authenticates against LLDAP.
+
+Activation generates runtime-only secrets and a bootstrap user under
+`/opt/theau-vps/state/lldap` and `/opt/theau-vps/state/authelia`. Credential
+files are root-readable only:
 
 ```text
+/opt/theau-vps/state/lldap/admin-credentials.txt
 /opt/theau-vps/state/authelia/admin-credentials.txt
 ```
 
-Nginx protects `coolify.theau.net` and `wg.theau.net` through Authelia once the
-`theau-net-services` certificate exists and the HTTPS service vhost is active.
+Authelia authorization uses LLDAP groups:
+
+- `users.theau.net`: `admins`
+- `coolify.theau.net`: `paas-admins` or `admins`
+- `wg.theau.net`: `wg-admin`
+
+WGDashboard internal authentication is disabled in the generated config, so
+webpage access is controlled at the Authelia edge.
+
 The main Nginx site also installs a `default_server` that returns 404 for
 hostnames not declared in the VPS bundle.
 
