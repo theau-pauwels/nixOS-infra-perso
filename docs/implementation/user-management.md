@@ -126,6 +126,11 @@ Grant access:
 1. Add the user to the service group in LLDAP.
 2. The next Authelia authorization check uses the updated group membership.
 
+WGDashboard has an additional in-app guard: Nginx forwards Authelia `Remote-*`
+headers to WGDashboard, and the packaged app creates an admin session only when
+the authenticated user is in `wg-admin`. The app does not bind directly to LDAP;
+LLDAP remains the group source through Authelia.
+
 Revoke access:
 
 1. Remove the user from the LLDAP group.

@@ -476,6 +476,9 @@ let
     Group=root
     WorkingDirectory=${wgdashboard}/share/wgdashboard
     Environment=CONFIGURATION_PATH=/var/lib/wgdashboard
+    Environment=WGDASHBOARD_TRUSTED_AUTH=true
+    Environment=WGDASHBOARD_TRUSTED_AUTH_REQUIRED_GROUP=wg-admin
+    Environment=WGDASHBOARD_TRUSTED_AUTH_ALLOWED_REMOTE_ADDRS=127.0.0.1,::1
     ExecStartPre=${pkgs.coreutils}/bin/install -d -m 0750 /var/lib/wgdashboard /var/lib/wgdashboard/db /var/lib/wgdashboard/log /var/lib/wgdashboard/plugins /var/lib/wgdashboard/letsencrypt/work-dir /var/lib/wgdashboard/letsencrypt/config-dir
     ExecStart=${wgdashboard}/bin/wgdashboard-gunicorn
     Restart=on-failure

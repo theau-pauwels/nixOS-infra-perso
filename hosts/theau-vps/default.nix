@@ -61,7 +61,7 @@ in
     listenAddress = "127.0.0.1";
     listenPort = 10086;
     appPrefix = "";
-    authRequired = false;
+    authRequired = true;
     adminUser = "admin";
     theme = "dark";
     language = "en-US";

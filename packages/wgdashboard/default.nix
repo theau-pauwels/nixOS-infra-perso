@@ -43,24 +43,28 @@ pkgs.stdenvNoCC.mkDerivation {
     cp ${./files/gunicorn.conf.py} "$out/share/wgdashboard/gunicorn.conf.py"
     cp ${./files/DashboardPlugins.py} "$out/share/wgdashboard/modules/DashboardPlugins.py"
     cp ${./files/ConnectionString.py} "$out/share/wgdashboard/modules/ConnectionString.py"
+    cp ${./files/DashboardTrustedAuth.py} "$out/share/wgdashboard/modules/DashboardTrustedAuth.py"
+    ${pkgs.python3}/bin/python ${./files/patch-dashboard.py} "$out/share/wgdashboard/dashboard.py"
 
     chmod +x "$out/share/wgdashboard/wgd.sh"
 
     makeWrapper ${pythonEnv}/bin/gunicorn "$out/bin/wgdashboard-gunicorn" \
       --chdir "$out/share/wgdashboard" \
       --prefix PYTHONPATH : "$out/share/wgdashboard:$out/share/wgdashboard/modules" \
-      --prefix PATH : "${lib.makeBinPath [
-        pkgs.bash
-        pkgs.coreutils
-        pkgs.findutils
-        pkgs.gawk
-        pkgs.gnugrep
-        pkgs.iproute2
-        pkgs.iputils
-        pkgs.procps
-        pkgs.traceroute
-        pkgs.wireguard-tools
-      ]}" \
+      --prefix PATH : "${
+        lib.makeBinPath [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gawk
+          pkgs.gnugrep
+          pkgs.iproute2
+          pkgs.iputils
+          pkgs.procps
+          pkgs.traceroute
+          pkgs.wireguard-tools
+        ]
+      }" \
       --add-flags "-c $out/share/wgdashboard/gunicorn.conf.py dashboard:app"
 
     runHook postInstall

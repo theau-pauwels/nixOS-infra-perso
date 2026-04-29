@@ -314,8 +314,10 @@ Coolify still uses its own internal user/team model after the Authelia gate.
 The current deployed Coolify OAuth implementation does not provide LDAP/LLDAP or
 generic Authelia OIDC user management.
 
-WGDashboard internal authentication is disabled in the generated config, so
-webpage access is controlled at the Authelia edge.
+WGDashboard internal authentication remains enabled. The packaged app is patched
+to trust only local reverse-proxy `Remote-*` headers from Authelia; it creates an
+admin session only when Authelia has authenticated the user and LLDAP group
+membership includes `wg-admin`.
 
 The main Nginx site also installs a `default_server` that returns 404 for
 hostnames not declared in the VPS bundle.
