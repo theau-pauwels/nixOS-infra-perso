@@ -54,6 +54,7 @@
         vpsNativeTarball = mkHostTarball "vps";
         nasKotTarball = mkHostTarball "nas-kot";
         momEdgeTarball = mkHostTarball "mom-edge";
+        dadEdgeTarball = mkHostTarball "dad-edge";
         kotMediaStackTarball = pkgs.runCommand "kot-media-stack.tar.gz" { } ''
           mkdir -p root
           ln -s ${jellyfinKotTarball} root/jellyfin-kot-system.tar.gz
@@ -78,6 +79,7 @@
           vps-native = vpsNativeTarball;
           nas-kot = nasKotTarball;
           mom-edge = momEdgeTarball;
+          dad-edge = dadEdgeTarball;
           kot-media-stack = kotMediaStackTarball;
           default = theauVpsBundle;
         };
@@ -135,6 +137,13 @@
         modules = [
           sops-nix.nixosModules.sops
           ./hosts/mom-edge
+        ];
+      };
+      nixosConfigurations.dad-edge = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          sops-nix.nixosModules.sops
+          ./hosts/dad-edge
         ];
       };
     };

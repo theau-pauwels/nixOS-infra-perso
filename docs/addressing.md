@@ -75,6 +75,8 @@ Current production:
 - WireGuard road-warrior subnet: `10.8.0.0/24`
 - VPS WireGuard address: `10.8.0.1/24`
 - existing peers are declared in `hosts/theau-vps/peers.nix`
+- Mom site edge skeleton: `10.8.0.30/32`
+- Dad site edge skeleton: `10.8.0.40/32`
 
 Future allocations should avoid overlapping the site/VLAN convention:
 

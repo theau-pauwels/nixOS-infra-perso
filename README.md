@@ -31,6 +31,7 @@ The target architecture is documented in:
 - [`docs/implementation/nas-kot-zfs.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/nas-kot-zfs.md)
 - [`docs/implementation/mom-edge.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/mom-edge.md)
 - [`docs/implementation/mom-nvr.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/mom-nvr.md)
+- [`docs/implementation/dad-edge.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/dad-edge.md)
 
 ## Production warning
 
@@ -49,7 +50,7 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 | Phase 3: Headscale and Caddy | Complete | Enables native VPS Headscale, Caddy, LLDAP, and central Authelia authorization |
 | Phase 4: NAS ZFS | Complete | Adds NAS Kot ZFS, LAN-only shares, Sanoid, Restic, and sops-nix secrets |
 | Phase 5: Mom edge | Complete | Adds Mom site VPN edge, monitoring exporters, disabled Frigate module, and secrets skeleton |
-| Phase 6: Dad edge | Not started | Future work |
+| Phase 6: Dad edge | Complete | Adds outbound-only Dad WireGuard edge for Starlink CGNAT |
 | Phase 7: VPS NixOS native | Not started | Future work |
 
 ## Target model

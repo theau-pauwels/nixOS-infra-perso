@@ -41,6 +41,7 @@ public exposure is required.
 | Seedbox UI | `seedbox.theau-vps.duckdns.org` | SSO-protected | Authelia `super-admin` only |
 | NAS SMB/NFS/FileBrowser | Kot LAN/VPN only | private subnets only | local Unix/Samba groups, no public ingress |
 | Mom edge exporters | `10.8.0.30:9100`, `10.8.0.30:9115` | VPN only | scrape from private monitoring |
+| Dad edge exporter | `10.8.0.40:9100` | VPN only | scrape from private monitoring |
 | Mom NVR | future LAN/VPN route | private only | disabled until cameras/storage are chosen |
 | Monitoring UI | future route | VPN-only | Authelia plus VPN |
 
@@ -89,6 +90,8 @@ The delegated model is not implemented yet.
 
 - Public internet reaches only deliberate edge services.
 - Site LANs are private and routed over VPN only when required.
+- Dad site routing is outbound-only from `dad-edge` because Starlink CGNAT
+  prevents inbound sessions.
 - Guest and IoT networks should not reach management networks by default.
 - Camera networks should reach only NVR services and required update endpoints.
 - Management VLANs should be reachable only from admin devices and trusted

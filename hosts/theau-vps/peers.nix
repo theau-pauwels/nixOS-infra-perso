@@ -40,4 +40,15 @@
       "10.10.10.0/24"
     ];
   }
+  {
+    name = "dad-edge site gateway skeleton";
+    enabled = false;
+    # Placeholder public key. Replace with the real Dad edge public key before
+    # enabling this peer in the active VPS bundle.
+    publicKey = "NJIsf3irx6gRKwldXK59mFBeXKm8/yMQfVm1G2wJwWQ=";
+    allowedIPs = [
+      "10.8.0.40/32"
+      "10.7.10.0/24"
+    ];
+  }
 ]
