@@ -15,8 +15,15 @@ Internet -> VPS Caddy/Traefik routing -> deployed app containers
 ```
 
 Coolify's admin UI must be protected by Authelia or VPN. In the central
-LLDAP-backed policy, access is granted to `paas-admins` and `admins`. Public
-applications must be intentionally exposed per app.
+LLDAP-backed edge policy, access is granted to `paas-admins` and `admins`.
+Public applications must be intentionally exposed per app.
+
+Coolify does not currently use LLDAP as its internal user-management backend in
+this deployment. The deployed Coolify version has local accounts and OAuth
+providers for selected external services, but no LDAP/LLDAP or generic Authelia
+OIDC provider. Treat Authelia + LLDAP as the access gate in front of Coolify;
+Coolify-local users, teams, API tokens, deploy keys, and project roles still
+need to be managed inside Coolify.
 
 ## Host Placement
 
@@ -113,7 +120,9 @@ If Caddy edge mode is enabled:
 curl -fsSI https://coolify.theau.net/
 ```
 
-Confirm unauthenticated access reaches Authelia, not the Coolify admin UI.
+Confirm unauthenticated access reaches Authelia, not the Coolify admin UI. Then
+log in to Coolify with a Coolify-local account for its internal team and project
+permissions.
 
 ## Rollback And Troubleshooting
 

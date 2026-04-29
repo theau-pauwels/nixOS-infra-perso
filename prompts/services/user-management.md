@@ -25,6 +25,10 @@ Allowed exceptions:
 
 No service web UI should be directly exposed to WAN.
 
+Services that do not support LDAP/LLDAP or a compatible SSO backend may keep
+local application accounts, but their web UI must still be protected by
+Authelia at the edge and the exception must be documented.
+
 ## Architecture
 
 ```text
@@ -83,6 +87,11 @@ Authelia rules must use LLDAP groups:
 - Wiki offline: `wiki-users` or `admins`
 - Monitoring dashboards: `monitoring-users`, `infra-admins`, or `admins`
 - LLDAP management UI: `admins` only
+
+Known limitation: Coolify web access can be restricted by Authelia + LLDAP
+groups, but Coolify's internal users, teams, project roles, API tokens, and
+deploy keys remain Coolify-local unless a compatible upstream SSO backend is
+available and configured.
 
 ## User Lifecycle
 

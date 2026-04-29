@@ -19,7 +19,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Host integration | ✅ | Modules are imported on the planned target hosts without enabling new services. |
 | Reverse proxy integration | ✅ | Optional Caddy vhosts exist for HTTP services; Coolify admin and private/admin UIs support ForwardAuth. |
 | Authelia integration | ✅ | Caddy ForwardAuth snippets are included where admin/private UI exposure is supported. |
-| Full user management | ✅ | LLDAP + Authelia model implemented with group-based policies and current VPS bundle integration. |
+| Full user management | 🟡 | LLDAP + Authelia model implemented for edge access; app-local identity remains where services lack compatible SSO. |
 | Secrets integration | 🟡 | Runtime secret paths are modeled and documented; final host SOPS wiring remains a production enablement step. |
 | Documentation | ✅ | Implementation docs exist under `docs/implementation/` for all phase 6.5 services. |
 | Build validation | 🟡 | Must be run with local Nix before production enablement. |
@@ -36,13 +36,14 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Groups / roles | ✅ | Standard groups are modeled, including `wg-admin` for WGDashboard. |
 | Authelia users | ✅ | Authelia authenticates against LLDAP and authorizes by LLDAP groups. |
 | Forgejo users | 🔴 | Forgejo registration is disabled, but user provisioning/admin policy is not implemented. |
-| Coolify users | 🟡 | Edge access is controlled by `paas-admins`/`admins`; Coolify app-local team setup remains a runtime step. |
+| Coolify users | ⚠️ | Edge access is controlled by `paas-admins`/`admins`; Coolify does not currently use LLDAP internally and keeps app-local users/teams. |
 | Service accounts | 🟡 | `service-accounts` group is modeled; individual app tokens remain runtime secrets. |
 | SSH/admin users | 🟡 | SSH remains break-glass and outside Authelia by design. |
 | Documentation | ✅ | `docs/implementation/user-management.md` exists. |
 
 #### Remaining work
 - Create service-specific app-local users or OIDC wiring where applications support it.
+- Revisit Coolify when it supports LDAP/LLDAP or a compatible generic OIDC provider.
 - Move bootstrap secrets from host-local files to the chosen encrypted secret backend when the native VPS target replaces the Ubuntu bundle.
 
 ---
@@ -142,7 +143,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 | Wildcard DNS | ✅ | DNS requirements documented; not assumed configured. |
 | Reverse proxy | ✅ | Preferred `caddy-edge` admin model documented and implemented. |
 | Authelia ForwardAuth | ✅ | Coolify admin protection is required in Caddy edge mode. |
-| Full user management | 🟡 | Edge access maps to `paas-admins`/`admins`; Coolify teams, Git credentials, and deploy keys remain app-local runtime setup. |
+| Full user management | ⚠️ | Edge access maps to `paas-admins`/`admins`; Coolify does not use LLDAP internally, so teams, Git credentials, and deploy keys remain app-local runtime setup. |
 | TLS | ✅ | Caddy hostname TLS and DNS-01 wildcard strategy documented. |
 | Backup | ✅ | `/data/coolify`, DB/volumes, and secrets are documented. |
 | Documentation | ✅ | `docs/implementation/coolify-paas.md` exists. |
@@ -150,7 +151,7 @@ This file tracks the implementation state of the service prompts in `prompts/ser
 #### Remaining work
 - Decide final production host and wildcard DNS provider before enabling.
 - Place official Coolify Compose files and `.env` outside Git.
-- Add Coolify users, teams, deploy keys, and recovery access to the future user-management layer.
+- Manage Coolify users, teams, deploy keys, and recovery access inside Coolify until a compatible upstream SSO backend is available.
 
 ---
 
@@ -197,7 +198,7 @@ Phase 6.5 can be considered complete when:
 
 ## Current Summary
 
-Current state: **phase 6.5 service implementation complete enough for guarded production trials**.
+Current state: **phase 6.5 service implementation complete enough for guarded production trials, with Coolify internal accounts explicitly app-local**.
 
 The repository now has a dedicated LLDAP + Authelia user-management layer before
 broader exposure of Forgejo, Coolify, and admin/private services.

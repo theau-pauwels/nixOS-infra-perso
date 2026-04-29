@@ -53,6 +53,20 @@ Authelia policies use LLDAP groups:
 Privileged routes should use Authelia `two_factor`. Public raw service ports
 remain closed or bound to localhost.
 
+## Application Accounts
+
+LLDAP is the source of truth for edge access to service web UIs. Some
+applications can also delegate their own user accounts to SSO/OIDC, but this is
+application-specific.
+
+Coolify is a current exception. The deployed Coolify version supports local
+accounts and a fixed list of OAuth providers, but it does not support LDAP,
+LLDAP, or generic OIDC against Authelia. Its web UI is still protected by
+Authelia before any request reaches Coolify, and only users in `paas-admins` or
+`admins` can reach the login page. Coolify teams, project permissions, deploy
+keys, and API tokens remain Coolify-local until upstream supports a compatible
+identity provider.
+
 ## Current VPS Bundle
 
 The current Ubuntu VPS bundle runs:
@@ -61,7 +75,7 @@ The current Ubuntu VPS bundle runs:
 - Authelia on `127.0.0.1:9091`
 - `users.theau.net` -> LLDAP UI, protected by Authelia `admins`
 - `wg.theau.net` -> WGDashboard, protected by Authelia `wg-admin`
-- `coolify.theau.net` -> Coolify, protected by Authelia `paas-admins` or `admins`
+- `coolify.theau.net` -> Coolify, edge-protected by Authelia `paas-admins` or `admins`
 
 Bootstrap credentials are generated on the VPS:
 

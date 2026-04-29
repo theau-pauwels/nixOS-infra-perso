@@ -310,6 +310,10 @@ Authelia authorization uses LLDAP groups:
 - `coolify.theau.net`: `paas-admins` or `admins`
 - `wg.theau.net`: `wg-admin`
 
+Coolify still uses its own internal user/team model after the Authelia gate.
+The current deployed Coolify OAuth implementation does not provide LDAP/LLDAP or
+generic Authelia OIDC user management.
+
 WGDashboard internal authentication is disabled in the generated config, so
 webpage access is controlled at the Authelia edge.
 
