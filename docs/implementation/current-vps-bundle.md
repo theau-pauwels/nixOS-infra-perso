@@ -296,6 +296,14 @@ files are root-readable only:
 /opt/theau-vps/state/authelia/admin-credentials.txt
 ```
 
+The bootstrap username is `theau`. Use `sudo cat` on IONOS-VPS2 to read the
+generated passwords. Authelia currently uses its filesystem notifier, so
+one-time verification codes are written to:
+
+```text
+/opt/theau-vps/state/authelia/notification.txt
+```
+
 Authelia authorization uses LLDAP groups:
 
 - `users.theau.net`: `admins`

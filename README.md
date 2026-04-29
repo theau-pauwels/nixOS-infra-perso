@@ -300,7 +300,7 @@ export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 ./deploy/push-generation.sh
 ```
 
-Authelia bootstrap credentials are generated on IONOS-VPS2 at:
+LLDAP and Authelia bootstrap credentials are generated on IONOS-VPS2 at:
 
 ```text
 /opt/theau-vps/state/lldap/admin-credentials.txt
@@ -309,6 +309,13 @@ Authelia bootstrap credentials are generated on IONOS-VPS2 at:
 
 The bootstrap username is `theau`; the password is generated at activation
 time and remains only on the VPS.
+
+Authelia currently uses a filesystem notifier. One-time verification codes are
+written on IONOS-VPS2 at:
+
+```text
+/opt/theau-vps/state/authelia/notification.txt
+```
 
 ## RustDesk OSS
 

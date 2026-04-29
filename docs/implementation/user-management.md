@@ -70,7 +70,21 @@ Bootstrap credentials are generated on the VPS:
 /opt/theau-vps/state/authelia/admin-credentials.txt
 ```
 
-Both files are root-readable only. The bootstrap user is `theau`.
+Both files are root-readable only. The bootstrap user is `theau`. Read them
+with:
+
+```bash
+ssh IONOS-VPS2-DEPLOY
+sudo cat /opt/theau-vps/state/lldap/admin-credentials.txt
+sudo cat /opt/theau-vps/state/authelia/admin-credentials.txt
+```
+
+Until SMTP is configured for Authelia, verification and recovery messages are
+written to the filesystem notifier instead of being sent by email:
+
+```bash
+sudo cat /opt/theau-vps/state/authelia/notification.txt
+```
 
 ## NixOS Module
 
