@@ -1,7 +1,13 @@
-{ ... }:
+{
+  config,
+  modulesPath,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
+    (modulesPath + "/profiles/qemu-guest.nix")
     ../../modules/common/base.nix
     ../../modules/common/ssh.nix
     ../../modules/common/security.nix
@@ -18,8 +24,12 @@
   personalInfra.common.security.enable = true;
   personalInfra.common.ssh.enable = true;
 
-  # TODO: add real admin public keys from approved inventory.
-  personalInfra.common.ssh.adminAuthorizedKeys = [ ];
+  personalInfra.common.ssh.adminAuthorizedKeys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJq35mLFxKBWuUJiawrAW9Sd+e8p8KIuOOZNmXE9f+2q theau-vps deploy 2026-04-06"
+  ];
+
+  networking.networkmanager.enable = true;
+  security.sudo.wheelNeedsPassword = false;
 
   personalInfra.networking.firewall = {
     enable = true;
@@ -27,6 +37,32 @@
       22
       8096
     ];
+  };
+
+  # Quadro P400 passthrough from Proxmox for Jellyfin NVENC/NVDEC.
+  # Pascal GPUs require the proprietary kernel module, not NVIDIA's open module.
+  nixpkgs.config.allowUnfree = true;
+
+  boot.blacklistedKernelModules = [ "nouveau" ];
+  boot.initrd.availableKernelModules = [
+    "uhci_hcd"
+    "ehci_pci"
+    "ahci"
+    "virtio_pci"
+    "virtio_scsi"
+    "sd_mod"
+    "sr_mod"
+  ];
+  boot.kernelModules = [ "kvm-intel" ];
+
+  hardware.graphics.enable = true;
+  services.xserver.videoDrivers = [ "nvidia" ];
+
+  hardware.nvidia = {
+    modesetting.enable = true;
+    nvidiaSettings = false;
+    open = false;
+    package = config.boot.kernelPackages.nvidiaPackages.legacy_580;
   };
 
   services.jellyfin = {
@@ -38,6 +74,15 @@
     logDir = "/srv/jellyfin/log";
   };
 
+  users.users.jellyfin.extraGroups = [
+    "render"
+    "video"
+  ];
+
+  environment.systemPackages = with pkgs; [
+    pciutils
+  ];
+
   personalInfra.observability.exporters.enable = false;
   personalInfra.backup.restic.enable = false;
 
@@ -45,23 +90,22 @@
   services.fstrim.enable = true;
 
   boot.growPartition = true;
-  boot.loader.grub.device = "/dev/vda";
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
 
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
   };
 
-  # TODO: replace this placeholder with the NAS-Kot backed VM disk, bind mount,
-  # or stable passthrough disk identifier after auditing Proxmox.
-  fileSystems."/srv/jellyfin" = {
-    device = "/dev/disk/by-label/jellyfin-data";
-    fsType = "ext4";
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-label/NIXBOOT";
+    fsType = "vfat";
     options = [
-      "nofail"
-      "x-systemd.device-timeout=10s"
+      "fmask=0022"
+      "dmask=0022"
     ];
   };
 
-  system.stateVersion = "25.05";
+  system.stateVersion = "25.11";
 }

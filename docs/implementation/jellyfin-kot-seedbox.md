@@ -120,6 +120,36 @@ virtio block devices, NFS mounts, or stable `/dev/disk/by-id/...` paths.
 Jellyfin is exposed on `8096/tcp` for now. Later phases should place it behind
 the SSO/VPN ingress policy.
 
+### Jellyfin NVIDIA Passthrough
+
+`jellyfin-kot` is prepared for a Proxmox PCI passthrough of the NVIDIA Quadro
+P400:
+
+```text
+01:00.0 VGA compatible controller: NVIDIA GP107GL [Quadro P400]
+01:00.1 Audio device: NVIDIA GP107GL High Definition Audio Controller
+```
+
+The NixOS host config enables the proprietary NVIDIA 580 legacy driver, disables
+the open NVIDIA kernel module because the P400 is a Pascal GPU, and grants
+Jellyfin the `video` and `render` groups for hardware transcoding access. Do not
+use the current stable 595 driver for this card: the kernel reports the Quadro
+P400 is supported by the 580.xx legacy branch and 595 ignores the GPU.
+
+In Proxmox, pass both PCI functions to the VM with `All Functions` and
+`PCI-Express` enabled. Do not make the NVIDIA card the primary GPU during the
+first boot unless the guest console has already been validated.
+
+After deployment, validate the guest sees the card:
+
+```bash
+nvidia-smi
+systemctl status jellyfin
+```
+
+Then enable hardware acceleration in the Jellyfin UI with the NVIDIA NVENC
+backend.
+
 ## Seedbox
 
 `seedbox-kot` runs:

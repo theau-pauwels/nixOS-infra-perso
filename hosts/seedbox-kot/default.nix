@@ -1,7 +1,8 @@
-{ ... }:
+{ modulesPath, ... }:
 
 {
   imports = [
+    (modulesPath + "/profiles/qemu-guest.nix")
     ../../modules/common/base.nix
     ../../modules/common/ssh.nix
     ../../modules/common/security.nix
@@ -20,8 +21,12 @@
   personalInfra.common.security.enable = true;
   personalInfra.common.ssh.enable = true;
 
-  # TODO: add real admin public keys from approved inventory.
-  personalInfra.common.ssh.adminAuthorizedKeys = [ ];
+  personalInfra.common.ssh.adminAuthorizedKeys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJq35mLFxKBWuUJiawrAW9Sd+e8p8KIuOOZNmXE9f+2q theau-vps deploy 2026-04-06"
+  ];
+
+  networking.networkmanager.enable = true;
+  security.sudo.wheelNeedsPassword = false;
 
   personalInfra.networking.firewall = {
     enable = true;
@@ -46,26 +51,37 @@
   personalInfra.observability.exporters.enable = false;
   personalInfra.backup.restic.enable = false;
 
+  boot.initrd.availableKernelModules = [
+    "uhci_hcd"
+    "ehci_pci"
+    "ahci"
+    "virtio_pci"
+    "virtio_scsi"
+    "sd_mod"
+    "sr_mod"
+  ];
+  boot.kernelModules = [ "kvm-intel" ];
+
   services.qemuGuest.enable = true;
   services.fstrim.enable = true;
 
   boot.growPartition = true;
-  boot.loader.grub.device = "/dev/vda";
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
 
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
   };
 
-  # TODO: replace with the NAS-Kot backed VM disk or shared dataset path.
-  fileSystems."/srv/seedbox" = {
-    device = "/dev/disk/by-label/seedbox-data";
-    fsType = "ext4";
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-label/NIXBOOT";
+    fsType = "vfat";
     options = [
-      "nofail"
-      "x-systemd.device-timeout=10s"
+      "fmask=0022"
+      "dmask=0022"
     ];
   };
 
-  system.stateVersion = "25.05";
+  system.stateVersion = "25.11";
 }

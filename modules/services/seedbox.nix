@@ -176,7 +176,12 @@ in
         {
           after = [ "podman-${gluetunContainerName}.service" ];
           requires = [ "podman-${gluetunContainerName}.service" ];
+          unitConfig.ConditionPathExists = cfg.gluetun.environmentFile;
         };
+
+    systemd.services."podman-${gluetunContainerName}" = lib.mkIf cfg.gluetun.enable {
+      unitConfig.ConditionPathExists = cfg.gluetun.environmentFile;
+    };
 
     networking.firewall.allowedTCPPorts = lib.mkIf cfg.qbittorrent.enable [
       cfg.qbittorrent.webuiPort
@@ -188,6 +193,8 @@ in
       "d ${cfg.dataRoot}/gluetun 0750 seedbox seedbox - -"
       "d ${cfg.dataRoot}/qbittorrent 0750 seedbox seedbox - -"
       "d ${cfg.dataRoot}/qbittorrent/config 0750 seedbox seedbox - -"
+      "d /var/lib/seedbox 0750 seedbox seedbox - -"
+      "d /var/lib/seedbox/gluetun 0750 seedbox seedbox - -"
     ];
 
     # TODO: once the real VM is audited, pin OCI image digests and migrate the
