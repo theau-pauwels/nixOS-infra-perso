@@ -24,6 +24,26 @@ Current target facts:
 - WireGuard interface: `wg0`
 - WireGuard subnet: `10.8.0.0/24`
 
+## Current Deployment Snapshot
+
+As of 2026-04-30, `IONOS-VPS2-DEPLOY` is running:
+
+- active bundle: `/nix/store/5hcbrdl1mm82nscm61kdzgci7m8y9b3f-theau-vps-bundle`
+- active generation: `/opt/theau-vps/generations/20260430010616`
+- `theau-net-services` certificate expiry: 2026-07-28
+- certificate SANs: `authelia.theau.net`, `coolify.theau.net`,
+  `prowlarr.theau.net`, `seer.theau.net`, `users.theau.net`, `wg.theau.net`
+
+The deployed service edge behavior was verified from outside the VPS:
+
+- `https://authelia.theau.net/`: Authelia login page, HTTP `200`
+- `https://users.theau.net/`: Authelia redirect before LLDAP UI login
+- `https://coolify.theau.net/`: Authelia redirect before Coolify
+- `https://wg.theau.net/`: Authelia redirect before WGDashboard
+- `https://prowlarr.theau.net/`: Authelia redirect before Prowlarr
+- `https://seer.theau.net/`: Authelia redirect before Seerr
+- undeclared HTTPS hostnames: default `404`
+
 ## Repository Structure
 
 Important files and directories at the phase 0 baseline:
@@ -166,6 +186,9 @@ Expected systemd units were present:
 - `theau-vps-nginx.service`
 - `theau-vps-wgdashboard.service`
 - `theau-vps-authelia.service`
+- `theau-vps-lldap.service`
+- `theau-vps-prowlarr.service`
+- `theau-vps-seerr.service`
 - `theau-vps-certbot-renew.service`
 - `theau-vps-certbot-renew.timer`
 - `theau-vps-iperf3.service`
@@ -174,7 +197,8 @@ Expected systemd units were present:
 
 Expected package symlinks were present for WGDashboard, Nginx, certbot,
 nftables, WireGuard tools, iperf3, systemd, iproute2, OpenSSH, Python,
-coreutils, procps, bash, gnused, RustDesk server, Authelia, and OpenSSL.
+coreutils, procps, bash, gnused, RustDesk server, Authelia, LLDAP, Prowlarr,
+Seerr, and OpenSSL.
 
 ## Service Mapping
 
@@ -188,6 +212,8 @@ The current services are mapped to source files as follows:
 | Nginx reverse proxy | `packages/bundle/default.nix` generated config from `hostSpec` | `/etc/theau-vps/nginx/nginx.conf`, `/etc/theau-vps/nginx/sites-enabled/theau-vps.conf`, `theau-vps-nginx.service` |
 | LLDAP | `hostSpec.serviceDomains`, generated runtime secrets | `/opt/theau-vps/state/lldap`, `theau-vps-lldap.service` |
 | Authelia | `hostSpec.serviceDomains`, generated runtime secrets | `/opt/theau-vps/state/authelia`, `theau-vps-authelia.service` |
+| Prowlarr | `hostSpec.serviceDomains`, generated runtime API key and config | `/var/lib/prowlarr`, `/opt/theau-vps/state/prowlarr`, `theau-vps-prowlarr.service` |
+| Seerr | `hostSpec.serviceDomains`, generated runtime API key and environment | `/var/lib/seerr`, `/opt/theau-vps/state/seerr`, `theau-vps-seerr.service` |
 | nftables firewall and NAT | `hostSpec.firewall`, `hostSpec.publicInterface`, `hostSpec.wireguard` | `/etc/theau-vps/nftables.conf`, `theau-vps-firewall.service` |
 | sysctl forwarding and rp_filter | `packages/bundle/default.nix` | `/etc/sysctl.d/90-theau-vps.conf` |
 | iperf3 | `hostSpec.iperf3` | `theau-vps-iperf3.service` |
@@ -272,6 +298,8 @@ The `theau.net` service certificate is issued separately with cert name
 
 - `authelia.theau.net`
 - `coolify.theau.net`
+- `prowlarr.theau.net`
+- `seer.theau.net`
 - `users.theau.net`
 - `wg.theau.net`
 
@@ -285,7 +313,9 @@ Use:
 ### LLDAP And Authelia
 
 LLDAP listens on `127.0.0.1:17170` for its web UI and `127.0.0.1:3890` for LDAP.
-Authelia listens on `127.0.0.1:9091` and authenticates against LLDAP.
+Authelia listens on `127.0.0.1:9091` and authenticates against LLDAP. The LLDAP
+UI route can be gated by Authelia, but LLDAP still performs its own UI login
+with LLDAP credentials.
 
 Activation generates runtime-only secrets and a bootstrap user under
 `/opt/theau-vps/state/lldap` and `/opt/theau-vps/state/authelia`. Credential
@@ -306,9 +336,17 @@ one-time verification codes are written to:
 
 Authelia authorization uses LLDAP groups:
 
-- `users.theau.net`: `admins`
+- `users.theau.net`: `admins` at the edge, then LLDAP UI login
 - `coolify.theau.net`: `paas-admins` or `admins`
+- `prowlarr.theau.net`: `media-admins` or `admins`
+- `seer.theau.net`: `media-users`, `media-admins`, or `admins`
 - `wg.theau.net`: `wg-admin`
+
+Prowlarr binds to `127.0.0.1:9696` and is configured with
+`AuthenticationMethod=External`; it relies on the Authelia/LLDAP edge gate.
+Seerr binds to `127.0.0.1:5055`; it does not have a generic Authelia/LLDAP
+login backend in the packaged app, so WAN access is controlled by the
+Authelia/LLDAP edge gate.
 
 Coolify still uses its own internal user/team model after the Authelia gate.
 The current deployed Coolify OAuth implementation does not provide LDAP/LLDAP or
@@ -407,6 +445,22 @@ Default deployment variables:
 - `TARGET_HOST=IONOS-VPS2-DEPLOY`
 - `SECRETS_FILE=hosts/theau-vps/secrets.enc.yaml`
 - `SOPS_BIN=$REPO_ROOT/.tools/sops/sops-v3.12.2.linux.amd64`
+
+The Prowlarr and Seerr expansion makes the bundle closure large. The verified
+local closure was about `2.0 GiB`, and `nix copy` can stay silent while it
+transfers package store paths. If the command is interrupted before the final
+bundle path is copied and before `/opt/theau-vps/current` is repointed, the
+target keeps serving the previous generation. In that case, verify with:
+
+```bash
+ssh IONOS-VPS2-DEPLOY 'readlink -f /opt/theau-vps/current'
+ssh IONOS-VPS2-DEPLOY 'systemctl is-active theau-vps-prowlarr.service theau-vps-seerr.service'
+```
+
+For the 2026-04-30 deployment, the Seerr store path was available in
+`cache.nixos.org` and was substituted directly on the VPS. That reduced the
+remote download to about `191.5 MiB` instead of pushing the local `1.4 GiB`
+store path over SSH.
 
 ## Activation Behavior
 

@@ -9,7 +9,12 @@ user -> Jellyseerr -> Prowlarr -> qBittorrent WebUI -> qBittorrent traffic via G
 ```
 
 `modules/services/prowlarr.nix` wraps the NixOS `services.prowlarr` module and
-keeps the UI internal. Prowlarr is not a public service.
+keeps the future native NixOS UI internal by default.
+
+The current Ubuntu VPS bundle is a separate compatibility deployment. It runs
+Prowlarr on `127.0.0.1:9696` and exposes `https://prowlarr.theau.net` only
+through the Nginx Authelia ForwardAuth edge. Authelia authorizes the route from
+LLDAP group membership: `media-admins` or `admins`.
 
 ## Host Placement
 
@@ -25,7 +30,7 @@ personalInfra.services.prowlarr.enable = false;
 
 ## Network Exposure
 
-Defaults:
+Future native NixOS module defaults:
 
 - bind address: `127.0.0.1`
 - port: `9696/tcp`
@@ -33,6 +38,15 @@ Defaults:
 - Caddy reverse proxy: optional and internal only
 - Authelia ForwardAuth: enabled if the optional Caddy vhost is enabled
 - public exposure: not allowed
+
+Current Ubuntu VPS bundle:
+
+- bind address: `127.0.0.1`
+- port: `9696/tcp`
+- public route: `https://prowlarr.theau.net`
+- edge auth: Authelia two-factor policy with LLDAP groups `media-admins` or
+  `admins`
+- app auth mode: Prowlarr `AuthenticationMethod=External`
 
 Documented trusted networks:
 
@@ -132,4 +146,5 @@ Common failures:
 - Prowlarr starts before qBittorrent: check `integrations.gluetunService`
 - qBittorrent connection refused: verify the WebUI port exposed by Gluetun
 - C411 fails behind Cloudflare: document whether FlareSolverr is required before adding it
-- public reachability detected: remove Caddy host and close firewall immediately
+- unexpected unauthenticated public reachability detected: remove the public
+  route or fix the Authelia ForwardAuth policy immediately

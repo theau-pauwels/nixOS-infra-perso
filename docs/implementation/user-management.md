@@ -8,8 +8,12 @@ User and service access is managed with LLDAP plus Authelia:
 browser -> Nginx/Caddy/Traefik -> Authelia ForwardAuth -> LLDAP groups -> service
 ```
 
-LLDAP stores users and groups and provides the user-management UI. Authelia is
-the login portal, 2FA gate, session manager, and authorization decision point.
+LLDAP stores users and groups and provides the user-management UI. Authelia
+authenticates against LLDAP and acts as the WAN login portal, 2FA gate, session
+manager, and authorization decision point.
+
+LLDAP's own UI is different from normal apps: the route can be gated by
+Authelia, but the UI still uses LLDAP credentials for its internal login.
 Application web UIs should bind locally or privately; WAN requests must pass
 through Authelia before reaching them.
 
@@ -73,9 +77,11 @@ The current Ubuntu VPS bundle runs:
 
 - LLDAP on `127.0.0.1:17170` and LDAP on `127.0.0.1:3890`
 - Authelia on `127.0.0.1:9091`
-- `users.theau.net` -> LLDAP UI, protected by Authelia `admins`
+- `users.theau.net` -> LLDAP UI, route-gated by Authelia `admins`; LLDAP still handles its own UI login
 - `wg.theau.net` -> WGDashboard, protected by Authelia `wg-admin`
 - `coolify.theau.net` -> Coolify, edge-protected by Authelia `paas-admins` or `admins`
+- `prowlarr.theau.net` -> Prowlarr, edge-protected by Authelia `media-admins` or `admins`
+- `seer.theau.net` -> Seerr, edge-protected by Authelia `media-users`, `media-admins`, or `admins`
 
 Bootstrap credentials are generated on the VPS:
 

@@ -79,6 +79,18 @@ host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 print(host.get("serviceDomains", {}).get("coolify", "coolify.theau.net"))
 PY
 )"
+PROWLARR_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("prowlarr", "prowlarr.theau.net"))
+PY
+)"
+SEER_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("seer", "seer.theau.net"))
+PY
+)"
 WG_DOMAIN="$(python3 - <<'PY'
 import json, os
 host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
@@ -122,9 +134,27 @@ if ! id -u lldap >/dev/null 2>&1; then
   useradd --system --gid lldap --home-dir /opt/theau-vps/state/lldap --shell /usr/sbin/nologin --no-create-home lldap
 fi
 
+if ! getent group prowlarr >/dev/null; then
+  groupadd --system prowlarr
+fi
+
+if ! id -u prowlarr >/dev/null 2>&1; then
+  useradd --system --gid prowlarr --home-dir /var/lib/prowlarr --shell /usr/sbin/nologin --no-create-home prowlarr
+fi
+
+if ! getent group seerr >/dev/null; then
+  groupadd --system seerr
+fi
+
+if ! id -u seerr >/dev/null 2>&1; then
+  useradd --system --gid seerr --home-dir /var/lib/seerr --shell /usr/sbin/nologin --no-create-home seerr
+fi
+
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia/assets
 install -d -o lldap -g lldap -m 0750 /opt/theau-vps/state/lldap
+install -d -o prowlarr -g prowlarr -m 0750 /opt/theau-vps/state/prowlarr /var/lib/prowlarr
+install -d -o seerr -g seerr -m 0750 /opt/theau-vps/state/seerr /var/lib/seerr
 
 AUTHELIA_STATE="/opt/theau-vps/state/authelia"
 AUTHELIA_PASSWORD_FILE="$AUTHELIA_STATE/admin-password"
@@ -139,6 +169,12 @@ LLDAP_CREDENTIALS_FILE="$LLDAP_STATE/admin-credentials.txt"
 LLDAP_JWT_SECRET_FILE="$LLDAP_STATE/jwt-secret"
 LLDAP_SERVER_KEY_SEED_FILE="$LLDAP_STATE/server-key-seed"
 LLDAP_CONFIG_FILE="$LLDAP_STATE/lldap_config.toml"
+PROWLARR_STATE="/opt/theau-vps/state/prowlarr"
+PROWLARR_API_KEY_FILE="$PROWLARR_STATE/api-key"
+PROWLARR_CONFIG_FILE="/var/lib/prowlarr/config.xml"
+SEERR_STATE="/opt/theau-vps/state/seerr"
+SEERR_API_KEY_FILE="$SEERR_STATE/api-key"
+SEERR_ENVIRONMENT_FILE="$SEERR_STATE/environment"
 
 if [[ ! -s "$AUTHELIA_PASSWORD_FILE" ]]; then
   umask 077
@@ -173,6 +209,16 @@ if [[ ! -s "$LLDAP_SERVER_KEY_SEED_FILE" ]]; then
   "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 32 > "$LLDAP_SERVER_KEY_SEED_FILE"
 fi
 
+if [[ ! -s "$PROWLARR_API_KEY_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 16 > "$PROWLARR_API_KEY_FILE"
+fi
+
+if [[ ! -s "$SEERR_API_KEY_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 16 > "$SEERR_API_KEY_FILE"
+fi
+
 if [[ ! -s "$AUTHELIA_PASSWORD_HASH_FILE" ]]; then
   password="$(cat "$AUTHELIA_PASSWORD_FILE")"
   "$BUNDLE_ROOT/share/theau-vps/authelia-package/bin/authelia" crypto hash generate argon2 --password "$password" \
@@ -183,6 +229,8 @@ password="$(cat "$LLDAP_ADMIN_PASSWORD_FILE")"
 jwt_secret="$(cat "$AUTHELIA_JWT_SECRET_FILE")"
 storage_key="$(cat "$AUTHELIA_STORAGE_KEY_FILE")"
 lldap_server_key_seed="$(cat "$LLDAP_SERVER_KEY_SEED_FILE")"
+prowlarr_api_key="$(cat "$PROWLARR_API_KEY_FILE")"
+seerr_api_key="$(cat "$SEERR_API_KEY_FILE")"
 
 cat > "$AUTHELIA_CREDENTIALS_FILE" <<EOF
 url: https://${AUTHELIA_DOMAIN}
@@ -204,11 +252,33 @@ http_port = 17170
 http_url = "https://${USERS_DOMAIN}"
 ldap_base_dn = "dc=theau,dc=net"
 ldap_user_dn = "theau"
-ldap_user_email = "theau@example.invalid"
+ldap_user_email = "theau.pauwels@gmail.com"
 ldap_user_pass_file = "${LLDAP_ADMIN_PASSWORD_FILE}"
 database_url = "sqlite://${LLDAP_STATE}/users.db?mode=rwc"
 jwt_secret_file = "${LLDAP_JWT_SECRET_FILE}"
 server_key_seed = "${lldap_server_key_seed}"
+EOF
+
+cat > "$PROWLARR_CONFIG_FILE" <<EOF
+<Config>
+  <LogLevel>info</LogLevel>
+  <UrlBase></UrlBase>
+  <Port>9696</Port>
+  <BindAddress>127.0.0.1</BindAddress>
+  <SslPort>6969</SslPort>
+  <EnableSsl>False</EnableSsl>
+  <LaunchBrowser>False</LaunchBrowser>
+  <AuthenticationMethod>External</AuthenticationMethod>
+  <AuthenticationRequired>Enabled</AuthenticationRequired>
+  <Branch>master</Branch>
+  <ApiKey>${prowlarr_api_key}</ApiKey>
+  <InstanceName>Prowlarr</InstanceName>
+  <UpdateMechanism>External</UpdateMechanism>
+</Config>
+EOF
+
+cat > "$SEERR_ENVIRONMENT_FILE" <<EOF
+API_KEY=${seerr_api_key}
 EOF
 
 cat > "$AUTHELIA_STATE/configuration.yml" <<EOF
@@ -245,11 +315,22 @@ access_control:
       policy: two_factor
       subject:
         - group:wg-admin
+    - domain: ${PROWLARR_DOMAIN}
+      policy: two_factor
+      subject:
+        - group:admins
+        - group:media-admins
+    - domain: ${SEER_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+        - group:media-admins
+        - group:media-users
 session:
   cookies:
     - domain: theau.net
       authelia_url: https://${AUTHELIA_DOMAIN}
-      default_redirection_url: https://${WG_DOMAIN}
+      default_redirection_url: https://${USERS_DOMAIN}
 storage:
   encryption_key: ${storage_key}
   local:
@@ -266,6 +347,10 @@ chown authelia:authelia "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_JWT_SECRE
 chmod 0600 "$AUTHELIA_STATE/configuration.yml" "$AUTHELIA_JWT_SECRET_FILE" "$AUTHELIA_STORAGE_KEY_FILE" "$AUTHELIA_PASSWORD_FILE" "$AUTHELIA_PASSWORD_HASH_FILE" "$AUTHELIA_LDAP_PASSWORD_FILE"
 chown lldap:lldap "$LLDAP_CONFIG_FILE" "$LLDAP_ADMIN_PASSWORD_FILE" "$LLDAP_JWT_SECRET_FILE" "$LLDAP_SERVER_KEY_SEED_FILE"
 chmod 0600 "$LLDAP_CONFIG_FILE" "$LLDAP_ADMIN_PASSWORD_FILE" "$LLDAP_JWT_SECRET_FILE" "$LLDAP_SERVER_KEY_SEED_FILE"
+chown prowlarr:prowlarr "$PROWLARR_API_KEY_FILE" "$PROWLARR_CONFIG_FILE"
+chmod 0600 "$PROWLARR_API_KEY_FILE" "$PROWLARR_CONFIG_FILE"
+chown seerr:seerr "$SEERR_API_KEY_FILE" "$SEERR_ENVIRONMENT_FILE"
+chmod 0600 "$SEERR_API_KEY_FILE" "$SEERR_ENVIRONMENT_FILE"
 chown root:root "$AUTHELIA_CREDENTIALS_FILE"
 chmod 0600 "$AUTHELIA_CREDENTIALS_FILE"
 chown root:root "$LLDAP_CREDENTIALS_FILE"
@@ -355,6 +440,8 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-nginx.service" /etc/systemd/s
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-wgdashboard.service" /etc/systemd/system/theau-vps-wgdashboard.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-authelia.service" /etc/systemd/system/theau-vps-authelia.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-lldap.service" /etc/systemd/system/theau-vps-lldap.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-prowlarr.service" /etc/systemd/system/theau-vps-prowlarr.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-seerr.service" /etc/systemd/system/theau-vps-seerr.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
@@ -391,8 +478,8 @@ PY
 sysctl --system >/dev/null
 /usr/sbin/sshd -t
 systemctl daemon-reload
-systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
-systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
@@ -409,6 +496,7 @@ done
 lldap_password="$(cat "$LLDAP_ADMIN_PASSWORD_FILE")"
 lldap_cli=(env "LLDAP_PASSWORD=$lldap_password" "$BUNDLE_ROOT/share/theau-vps/lldap-cli-package/bin/lldap-cli" -H http://127.0.0.1:17170 -D theau)
 "${lldap_cli[@]}" group list >/dev/null
+"${lldap_cli[@]}" user update set theau mail theau.pauwels@gmail.com >/dev/null
 
 for group in admins infra-admins media-users media-admins git-users git-admins paas-users paas-admins wiki-users monitoring-users service-accounts wg-admin; do
   "${lldap_cli[@]}" group add "$group" >/dev/null 2>&1 || true
@@ -425,6 +513,8 @@ systemctl restart theau-vps-nginx.service
 systemctl restart theau-vps-iperf3.service
 systemctl restart theau-vps-rustdesk-hbbs.service
 systemctl restart theau-vps-rustdesk-hbbr.service
+systemctl restart theau-vps-prowlarr.service
+systemctl restart theau-vps-seerr.service
 systemctl restart theau-vps-wgdashboard.service
 systemctl restart theau-vps-certbot-renew.timer
 

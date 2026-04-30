@@ -89,11 +89,17 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - native WireGuard via `wg-quick`
 - WGDashboard behind local Gunicorn on `127.0.0.1:10086`
 - RustDesk Server OSS with `hbbs` and `hbbr`
-- Nginx reverse proxy on `80` and later `443`
+- Nginx reverse proxy on `80` and `443`
 - LLDAP on `127.0.0.1:17170` with LDAP on `127.0.0.1:3890`
 - Authelia on `127.0.0.1:9091`
-- prepared public vhosts for `authelia.theau.net`, `coolify.theau.net`, `users.theau.net`, and `wg.theau.net`
-- Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard, `paas-admins` for Coolify, `admins` for LLDAP)
+- Prowlarr on `127.0.0.1:9696`
+- Seerr on `127.0.0.1:5055`
+- public vhosts for `authelia.theau.net`, `coolify.theau.net`,
+  `prowlarr.theau.net`, `seer.theau.net`, `users.theau.net`, and
+  `wg.theau.net`
+- Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard,
+  `paas-admins` for Coolify, `media-admins` for Prowlarr, `media-users` for
+  Seerr, `admins` for administration)
 - a default Nginx vhost returning 404 for unlisted hostnames
 - nftables firewall
 - iperf3
@@ -277,7 +283,7 @@ Current production status:
 - `theau-vps.duckdns.org` now resolves to `82.165.20.195`
 - Nginx redirects HTTP to HTTPS
 - Let's Encrypt is active for `theau-vps.duckdns.org`
-- the current certificate expires on `2026-07-05`
+- the DuckDNS certificate expires on `2026-07-05`
 
 ## theau.net service domains
 
@@ -287,6 +293,8 @@ certificate:
 ```text
 authelia.theau.net A 82.165.20.195
 coolify.theau.net  A 82.165.20.195
+prowlarr.theau.net A 82.165.20.195
+seer.theau.net     A 82.165.20.195
 users.theau.net    A 82.165.20.195
 wg.theau.net       A 82.165.20.195
 ```
@@ -316,6 +324,19 @@ written on IONOS-VPS2 at:
 ```text
 /opt/theau-vps/state/authelia/notification.txt
 ```
+
+Current deployed edge behavior:
+
+- `https://authelia.theau.net/` serves Authelia directly.
+- `https://users.theau.net/` redirects to Authelia, then shows the LLDAP UI
+  login.
+- `https://coolify.theau.net/`, `https://wg.theau.net/`,
+  `https://prowlarr.theau.net/`, and `https://seer.theau.net/` redirect to
+  Authelia before reaching their upstream apps.
+- undeclared HTTPS hostnames return `404`.
+
+The `theau-net-services` certificate currently covers all six service domains
+and expires on `2026-07-28`.
 
 ## RustDesk OSS
 
@@ -442,10 +463,19 @@ ssh jellyfin_kot 'sudo sed -i "s/WIREGUARD_ENDPOINT_IP=82\\.165\\.20\\.195/WIREG
 ## Current status
 
 - target VPS deployment is active
+- active generation is `/opt/theau-vps/generations/20260430010616`
+- active bundle is `/nix/store/5hcbrdl1mm82nscm61kdzgci7m8y9b3f-theau-vps-bundle`
 - `hostname` is `theau-vps`
 - `timezone` is `Europe/Brussels`
-- WireGuard, WGDashboard, Nginx, firewall, and iperf3 are active on `IONOS-VPS2`
-- WGDashboard is reachable publicly at `https://theau-vps.duckdns.org`
+- WireGuard, WGDashboard, Nginx, firewall, LLDAP, Authelia, Prowlarr, Seerr,
+  and iperf3 are active on `IONOS-VPS2`
+- WGDashboard is reachable at `https://wg.theau.net` behind Authelia
+- Coolify is reachable at `https://coolify.theau.net` behind Authelia
+- Prowlarr is reachable at `https://prowlarr.theau.net` behind Authelia
+- Seerr is reachable at `https://seer.theau.net` behind Authelia
+- LLDAP is reachable at `https://users.theau.net` behind Authelia, then uses
+  LLDAP's own UI login
+- Authelia default post-login fallback is `https://users.theau.net`
 - DuckDNS now points to the new VPS at `82.165.20.195`
 - HTTP returns `301` to HTTPS
 - Jellyfin VM `gluetun` and `qbittorrent` now use the new WireGuard endpoint on `82.165.20.195`

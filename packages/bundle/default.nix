@@ -14,6 +14,8 @@ let
     hostSpec.serviceDomains or {
       authelia = "authelia.theau.net";
       coolify = "coolify.theau.net";
+      prowlarr = "prowlarr.theau.net";
+      seer = "seer.theau.net";
       users = "users.theau.net";
       wg = "wg.theau.net";
       certName = "theau-net-services";
@@ -21,6 +23,8 @@ let
   serviceDomainNames = [
     serviceDomains.authelia
     serviceDomains.coolify
+    serviceDomains.prowlarr
+    serviceDomains.seer
     serviceDomains.users
     serviceDomains.wg
   ];
@@ -381,6 +385,48 @@ let
 
       ${autheliaProtectedLocation "http://127.0.0.1:8000"}
     }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.prowlarr};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:9696"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.seer};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:5055"}
+    }
   '';
 
   wgDashboardIniTemplate = ''
@@ -533,6 +579,64 @@ let
     PrivateTmp=yes
     ProtectSystem=full
     ProtectHome=true
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  prowlarrUnit = ''
+    [Unit]
+    Description=theau-vps Prowlarr
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=prowlarr
+    Group=prowlarr
+    WorkingDirectory=/var/lib/prowlarr
+    Environment=HOME=/var/lib/prowlarr
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o prowlarr -g prowlarr -m 0750 /var/lib/prowlarr
+    ExecStart=${pkgs.prowlarr}/bin/Prowlarr -nobrowser -data=/var/lib/prowlarr
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/prowlarr
+    LimitNOFILE=65535
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  seerrUnit = ''
+    [Unit]
+    Description=theau-vps Seerr
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=seerr
+    Group=seerr
+    WorkingDirectory=/var/lib/seerr
+    Environment=CONFIG_DIRECTORY=/var/lib/seerr
+    Environment=HOME=/var/lib/seerr
+    Environment=HOST=127.0.0.1
+    Environment=PORT=5055
+    EnvironmentFile=-/opt/theau-vps/state/seerr/environment
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o seerr -g seerr -m 0750 /var/lib/seerr
+    ExecStart=${pkgs.seerr}/bin/seerr
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/seerr
+    LimitNOFILE=65535
 
     [Install]
     WantedBy=multi-user.target
@@ -740,6 +844,14 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${lldapUnit}
   EOF
 
+  cat > "$out/share/theau-vps/systemd/theau-vps-prowlarr.service" <<'EOF'
+  ${prowlarrUnit}
+  EOF
+
+  cat > "$out/share/theau-vps/systemd/theau-vps-seerr.service" <<'EOF'
+  ${seerrUnit}
+  EOF
+
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'
   ${certbotRenewService}
   EOF
@@ -778,5 +890,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ln -s ${pkgs.authelia} "$out/share/theau-vps/authelia-package"
   ln -s ${pkgs.lldap} "$out/share/theau-vps/lldap-package"
   ln -s ${pkgs.lldap-cli} "$out/share/theau-vps/lldap-cli-package"
+  ln -s ${pkgs.prowlarr} "$out/share/theau-vps/prowlarr-package"
+  ln -s ${pkgs.seerr} "$out/share/theau-vps/seerr-package"
   ln -s ${pkgs.openssl} "$out/share/theau-vps/openssl-package"
 ''

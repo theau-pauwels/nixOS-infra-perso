@@ -35,7 +35,9 @@ public exposure is required.
 | iperf3 | `5201/tcp` | public for now | operational test service |
 | Headscale | `headscale.theau-vps.duckdns.org` | public HTTPS | Headscale OIDC through Authelia |
 | Authelia | `auth.theau-vps.duckdns.org` | public HTTPS | central login/2FA and service authorization |
-| LLDAP user manager | `users.theau.net` / `users.theau-vps.duckdns.org` | SSO-protected | Authelia `admins` only |
+| LLDAP user manager | `users.theau.net` / `users.theau-vps.duckdns.org` | Authelia edge gate, then LLDAP login | Authelia `admins` only at edge; LLDAP credentials in app |
+| Prowlarr | `prowlarr.theau.net` | SSO-protected | Authelia `media-admins` or `admins` |
+| Seerr | `seer.theau.net` | SSO-protected | Authelia `media-users`, `media-admins`, or `admins` |
 | Jellyfin | `jellyfin.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
 | Jellyseerr | `jellyseerr.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |
 | Seedbox UI | `seedbox.theau-vps.duckdns.org` | SSO-protected | Authelia `super-admin` only |

@@ -142,8 +142,8 @@ in
 
       adminEmail = lib.mkOption {
         type = lib.types.str;
-        default = "theau@example.invalid";
-        description = "Initial LLDAP admin email placeholder.";
+        default = "theau.pauwels@gmail.com";
+        description = "Initial LLDAP admin email.";
       };
 
       adminPasswordFile = lib.mkOption {
@@ -212,8 +212,8 @@ in
 
       jellyseerrDomain = lib.mkOption {
         type = lib.types.str;
-        default = "jellyseerr.theau.net";
-        description = "Jellyseerr domain.";
+        default = "seer.theau.net";
+        description = "Seerr/Jellyseerr domain.";
       };
 
       wikiDomain = lib.mkOption {

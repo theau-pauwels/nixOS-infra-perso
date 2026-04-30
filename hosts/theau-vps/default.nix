@@ -13,6 +13,8 @@ in
   serviceDomains = {
     authelia = "authelia.theau.net";
     coolify = "coolify.theau.net";
+    prowlarr = "prowlarr.theau.net";
+    seer = "seer.theau.net";
     users = "users.theau.net";
     wg = "wg.theau.net";
     certName = "theau-net-services";

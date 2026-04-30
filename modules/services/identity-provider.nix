@@ -27,8 +27,8 @@ in
 
     lldapAdminEmail = lib.mkOption {
       type = lib.types.str;
-      default = "theau@example.invalid";
-      description = "Initial LLDAP super-admin email placeholder.";
+      default = "theau.pauwels@gmail.com";
+      description = "Initial LLDAP super-admin email.";
     };
 
     lldapAdminPasswordFile = lib.mkOption {
