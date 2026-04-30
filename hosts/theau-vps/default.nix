@@ -13,7 +13,9 @@ in
   serviceDomains = {
     authelia = "authelia.theau.net";
     coolify = "coolify.theau.net";
+    jellyfin = "jellyfin.theau.net";
     prowlarr = "prowlarr.theau.net";
+    qbit = "qbit.theau.net";
     seer = "seer.theau.net";
     users = "users.theau.net";
     wg = "wg.theau.net";

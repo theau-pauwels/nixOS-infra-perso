@@ -14,7 +14,9 @@ let
     hostSpec.serviceDomains or {
       authelia = "authelia.theau.net";
       coolify = "coolify.theau.net";
+      jellyfin = "jellyfin.theau.net";
       prowlarr = "prowlarr.theau.net";
+      qbit = "qbit.theau.net";
       seer = "seer.theau.net";
       users = "users.theau.net";
       wg = "wg.theau.net";
@@ -23,7 +25,9 @@ let
   serviceDomainNames = [
     serviceDomains.authelia
     serviceDomains.coolify
+    serviceDomains.jellyfin
     serviceDomains.prowlarr
+    serviceDomains.qbit
     serviceDomains.seer
     serviceDomains.users
     serviceDomains.wg
@@ -405,6 +409,68 @@ let
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
       ${autheliaProtectedLocation "http://127.0.0.1:9696"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.jellyfin};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaAuthLocation}
+
+      location / {
+        auth_request /internal/authelia/authz;
+        auth_request_set $redirection_url $upstream_http_location;
+        error_page 401 =302 $redirection_url;
+        auth_request_set $user $upstream_http_remote_user;
+        auth_request_set $groups $upstream_http_remote_groups;
+        auth_request_set $name $upstream_http_remote_name;
+        auth_request_set $email $upstream_http_remote_email;
+        proxy_set_header Remote-User $user;
+        proxy_set_header Remote-Groups $groups;
+        proxy_set_header Remote-Name $name;
+        proxy_set_header Remote-Email $email;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        ${proxyHeaders}
+        proxy_pass http://10.8.0.21:8096;
+      }
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.qbit};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://10.8.0.22:8080"}
     }
 
     server {

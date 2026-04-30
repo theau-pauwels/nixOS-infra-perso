@@ -95,11 +95,11 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - Prowlarr on `127.0.0.1:9696`
 - Seerr on `127.0.0.1:5055`
 - public vhosts for `authelia.theau.net`, `coolify.theau.net`,
-  `prowlarr.theau.net`, `seer.theau.net`, `users.theau.net`, and
-  `wg.theau.net`
+  `jellyfin.theau.net`, `prowlarr.theau.net`, `qbit.theau.net`,
+  `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
 - Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard,
-  `paas-admins` for Coolify, `media-admins` for Prowlarr, `media-users` for
-  Seerr, `admins` for administration)
+  `paas-admins` for Coolify, `media-admins` for Prowlarr/qBittorrent,
+  `media-users` for Jellyfin/Seerr, `admins` for administration)
 - a default Nginx vhost returning 404 for unlisted hostnames
 - nftables firewall
 - iperf3
@@ -293,7 +293,9 @@ certificate:
 ```text
 authelia.theau.net A 82.165.20.195
 coolify.theau.net  A 82.165.20.195
+jellyfin.theau.net A 82.165.20.195
 prowlarr.theau.net A 82.165.20.195
+qbit.theau.net     A 82.165.20.195
 seer.theau.net     A 82.165.20.195
 users.theau.net    A 82.165.20.195
 wg.theau.net       A 82.165.20.195
@@ -331,12 +333,12 @@ Current deployed edge behavior:
 - `https://users.theau.net/` redirects to Authelia, then shows the LLDAP UI
   login.
 - `https://coolify.theau.net/`, `https://wg.theau.net/`,
-  `https://prowlarr.theau.net/`, and `https://seer.theau.net/` redirect to
-  Authelia before reaching their upstream apps.
+  `https://jellyfin.theau.net/`, `https://prowlarr.theau.net/`,
+  `https://qbit.theau.net/`, and `https://seer.theau.net/` redirect to Authelia
+  before reaching their upstream apps.
 - undeclared HTTPS hostnames return `404`.
 
-The `theau-net-services` certificate currently covers all six service domains
-and expires on `2026-07-28`.
+The `theau-net-services` certificate is expanded as service domains are added.
 
 ## RustDesk OSS
 
@@ -463,15 +465,17 @@ ssh jellyfin_kot 'sudo sed -i "s/WIREGUARD_ENDPOINT_IP=82\\.165\\.20\\.195/WIREG
 ## Current status
 
 - target VPS deployment is active
-- active generation is `/opt/theau-vps/generations/20260430010616`
-- active bundle is `/nix/store/5hcbrdl1mm82nscm61kdzgci7m8y9b3f-theau-vps-bundle`
+- active generation is `/opt/theau-vps/generations/20260430134153`
+- active bundle is `/nix/store/wxhrrifyxhc13qrxv5vxf4lmiazxyzyl-theau-vps-bundle`
 - `hostname` is `theau-vps`
 - `timezone` is `Europe/Brussels`
 - WireGuard, WGDashboard, Nginx, firewall, LLDAP, Authelia, Prowlarr, Seerr,
   and iperf3 are active on `IONOS-VPS2`
 - WGDashboard is reachable at `https://wg.theau.net` behind Authelia
 - Coolify is reachable at `https://coolify.theau.net` behind Authelia
+- Jellyfin is reachable at `https://jellyfin.theau.net` behind Authelia
 - Prowlarr is reachable at `https://prowlarr.theau.net` behind Authelia
+- qBittorrent is reachable at `https://qbit.theau.net` behind Authelia
 - Seerr is reachable at `https://seer.theau.net` behind Authelia
 - LLDAP is reachable at `https://users.theau.net` behind Authelia, then uses
   LLDAP's own UI login

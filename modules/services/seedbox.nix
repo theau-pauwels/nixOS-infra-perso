@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.personalInfra.services.seedbox;
@@ -68,7 +73,6 @@ in
         default = [
           "10.224.10.0/24"
           "10.224.20.0/24"
-          "10.8.0.0/24"
         ];
         description = "Subnets allowed through gluetun firewall for LAN/VPN access to qBittorrent.";
       };
@@ -128,7 +132,10 @@ in
             WIREGUARD_ENDPOINT_PORT = toString cfg.gluetun.endpointPort;
             WIREGUARD_ADDRESSES = cfg.gluetun.tunnelAddress;
             FIREWALL = "on";
-            FIREWALL_VPN_INPUT_PORTS = toString cfg.qbittorrent.torrentPort;
+            FIREWALL_VPN_INPUT_PORTS = lib.concatStringsSep "," [
+              (toString cfg.qbittorrent.webuiPort)
+              (toString cfg.qbittorrent.torrentPort)
+            ];
             FIREWALL_OUTBOUND_SUBNETS = lib.concatStringsSep "," cfg.gluetun.allowedOutboundSubnets;
             TZ = config.time.timeZone;
           };
@@ -177,6 +184,21 @@ in
           after = [ "podman-${gluetunContainerName}.service" ];
           requires = [ "podman-${gluetunContainerName}.service" ];
           unitConfig.ConditionPathExists = cfg.gluetun.environmentFile;
+          preStart = ''
+            ${pkgs.coreutils}/bin/install -d -o seedbox -g seedbox -m 0750 ${cfg.dataRoot}/qbittorrent/config/qBittorrent
+            qbit_config=${cfg.dataRoot}/qbittorrent/config/qBittorrent/qBittorrent.conf
+            if [ ! -e "$qbit_config" ]; then
+              ${pkgs.coreutils}/bin/printf '%s\n' \
+                '[Preferences]' \
+                'WebUI\AuthSubnetWhitelist=10.8.0.1/32' \
+                'WebUI\AuthSubnetWhitelistEnabled=true' \
+                'WebUI\HostHeaderValidation=false' \
+                'WebUI\ReverseProxySupportEnabled=true' \
+                > "$qbit_config"
+              ${pkgs.coreutils}/bin/chown seedbox:seedbox "$qbit_config"
+              ${pkgs.coreutils}/bin/chmod 0640 "$qbit_config"
+            fi
+          '';
         };
 
     systemd.services."podman-${gluetunContainerName}" = lib.mkIf cfg.gluetun.enable {

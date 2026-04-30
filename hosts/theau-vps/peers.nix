@@ -30,6 +30,16 @@
     allowedIPs = [ "10.8.0.6/32" ];
   }
   {
+    name = "jellyfin-kot";
+    publicKey = "W9CIfBfL/9iYCdV1pDlOpi76jLKyLFBh1Ssd3sAMoj8=";
+    allowedIPs = [ "10.8.0.21/32" ];
+  }
+  {
+    name = "seedbox-kot";
+    publicKey = "QAwl8Yaq8Ncq/8YiBvos+muSaZI6kPM/7Vga/B90VHg=";
+    allowedIPs = [ "10.8.0.22/32" ];
+  }
+  {
     name = "mom-edge site gateway skeleton";
     enabled = false;
     # Placeholder public key. Replace with the real Mom edge public key before

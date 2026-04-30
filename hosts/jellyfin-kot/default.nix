@@ -39,6 +39,20 @@
     ];
   };
 
+  networking.wg-quick.interfaces.theau-vps = {
+    address = [ "10.8.0.21/32" ];
+    privateKeyFile = "/var/lib/wireguard/theau-vps/private-key";
+    peers = [
+      {
+        publicKey = "Yp43qdK8PrYR+SYZ6s9dGsYkbsgLZEk4c6NTVZcETBc=";
+        presharedKeyFile = "/var/lib/wireguard/theau-vps/preshared-key";
+        allowedIPs = [ "10.8.0.0/24" ];
+        endpoint = "82.165.20.195:51820";
+        persistentKeepalive = 21;
+      }
+    ];
+  };
+
   # Quadro P400 passthrough from Proxmox for Jellyfin NVENC/NVDEC.
   # Pascal GPUs require the proprietary kernel module, not NVIDIA's open module.
   nixpkgs.config.allowUnfree = true;
@@ -88,6 +102,11 @@
 
   services.qemuGuest.enable = true;
   services.fstrim.enable = true;
+
+  systemd.tmpfiles.rules = [
+    "d /var/lib/wireguard 0700 root root - -"
+    "d /var/lib/wireguard/theau-vps 0700 root root - -"
+  ];
 
   boot.growPartition = true;
   boot.loader.systemd-boot.enable = true;

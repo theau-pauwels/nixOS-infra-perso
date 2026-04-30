@@ -42,7 +42,7 @@
     gluetun = {
       endpointIp = "82.165.20.195";
       endpointPort = 51820;
-      tunnelAddress = "10.8.0.20/32";
+      tunnelAddress = "10.8.0.22/32";
       environmentFile = "/var/lib/seedbox/gluetun/ionos-vps2-wireguard.env";
     };
   };

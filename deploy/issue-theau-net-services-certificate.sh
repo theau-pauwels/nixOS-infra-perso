@@ -4,6 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 
 CERT_NAME=theau-net-services \
-DOMAINS="authelia.theau.net coolify.theau.net prowlarr.theau.net seer.theau.net users.theau.net wg.theau.net" \
+DOMAINS="authelia.theau.net coolify.theau.net jellyfin.theau.net prowlarr.theau.net qbit.theau.net seer.theau.net users.theau.net wg.theau.net" \
 CERTBOT_ARGS="--expand" \
   "$SCRIPT_DIR/issue-certificate.sh"

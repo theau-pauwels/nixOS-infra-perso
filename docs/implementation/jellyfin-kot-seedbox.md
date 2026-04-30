@@ -33,7 +33,9 @@ The current torrent privacy path exits through the WireGuard endpoint on
 
 - endpoint IP: `82.165.20.195`
 - endpoint port: `51820/udp`
-- current peer address: `10.8.0.20/32`
+- legacy qBittorrent peer address: `10.8.0.20/32`
+- Jellyfin ingress peer address: `10.8.0.21/32`
+- seedbox-kot Gluetun peer address: `10.8.0.22/32`
 
 ## Design
 
@@ -57,8 +59,8 @@ Authelia + LLDAP
   v
 Kot media VMs on Proxmox
   |
-  +-- jellyfin-kot:   Jellyfin, TCP 8096
-  +-- seedbox-kot:    qBittorrent via gluetun, TCP 8080
+  +-- jellyfin-kot:   Jellyfin, TCP 8096 via 10.8.0.21
+  +-- seedbox-kot:    qBittorrent via gluetun, TCP 8080 via 10.8.0.22
   +-- jellyseerr-kot: Jellyseerr, TCP 5055
 ```
 
@@ -112,7 +114,6 @@ seedbox-kot  /srv/seedbox
 
 Future NAS-backed mounts:
 
-
 ```text
 jellyfin-kot   /srv/jellyfin    /dev/disk/by-label/jellyfin-data
 seedbox-kot    /srv/seedbox     /dev/disk/by-label/seedbox-data
@@ -134,8 +135,10 @@ backed VM disks, virtio block devices, NFS mounts, or stable
 /srv/jellyfin/log
 ```
 
-Jellyfin is exposed on `8096/tcp` for now. Later phases should place it behind
-the SSO/VPN ingress policy.
+Jellyfin is exposed internally on `8096/tcp` and publicly through
+`https://jellyfin.theau.net`. The public route terminates TLS on `IONOS-VPS2`,
+uses Authelia/LLDAP group policy for `media-users`, `media-admins`, or
+`admins`, then proxies to `10.8.0.21:8096` over WireGuard.
 
 ### Jellyfin NVIDIA Passthrough
 
@@ -204,6 +207,17 @@ This file must not be committed.
 The seedbox containers are gated by this file. Until it exists,
 `podman-seedbox-gluetun.service` and `podman-seedbox-qbittorrent.service` are
 skipped instead of starting with incomplete VPN credentials.
+
+qBittorrent is exposed publicly through `https://qbit.theau.net`. The public
+route terminates TLS on `IONOS-VPS2`, uses Authelia/LLDAP group policy for
+`media-admins` or `admins`, then proxies to `10.8.0.22:8080` over the seedbox
+Gluetun WireGuard interface. The Gluetun firewall must allow both the
+qBittorrent WebUI port `8080/tcp` and the torrent port `6881/tcp+udp` as VPN
+input ports.
+
+Do not put `10.8.0.0/24` in Gluetun `FIREWALL_OUTBOUND_SUBNETS`: Gluetun routes
+those outbound subnets over `eth0`, which breaks replies to the VPS WireGuard
+address `10.8.0.1`.
 
 ## Jellyseerr
 

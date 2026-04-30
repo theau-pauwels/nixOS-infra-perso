@@ -79,10 +79,22 @@ host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 print(host.get("serviceDomains", {}).get("coolify", "coolify.theau.net"))
 PY
 )"
+JELLYFIN_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("jellyfin", "jellyfin.theau.net"))
+PY
+)"
 PROWLARR_DOMAIN="$(python3 - <<'PY'
 import json, os
 host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 print(host.get("serviceDomains", {}).get("prowlarr", "prowlarr.theau.net"))
+PY
+)"
+QBIT_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("qbit", "qbit.theau.net"))
 PY
 )"
 SEER_DOMAIN="$(python3 - <<'PY'
@@ -320,6 +332,17 @@ access_control:
       subject:
         - group:admins
         - group:media-admins
+    - domain: ${QBIT_DOMAIN}
+      policy: two_factor
+      subject:
+        - group:admins
+        - group:media-admins
+    - domain: ${JELLYFIN_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+        - group:media-admins
+        - group:media-users
     - domain: ${SEER_DOMAIN}
       policy: one_factor
       subject:

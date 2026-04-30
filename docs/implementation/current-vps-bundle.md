@@ -28,11 +28,12 @@ Current target facts:
 
 As of 2026-04-30, `IONOS-VPS2-DEPLOY` is running:
 
-- active bundle: `/nix/store/5hcbrdl1mm82nscm61kdzgci7m8y9b3f-theau-vps-bundle`
-- active generation: `/opt/theau-vps/generations/20260430010616`
-- `theau-net-services` certificate expiry: 2026-07-28
-- certificate SANs: `authelia.theau.net`, `coolify.theau.net`,
-  `prowlarr.theau.net`, `seer.theau.net`, `users.theau.net`, `wg.theau.net`
+- active bundle: `/nix/store/wxhrrifyxhc13qrxv5vxf4lmiazxyzyl-theau-vps-bundle`
+- active generation: `/opt/theau-vps/generations/20260430134153`
+- `theau-net-services` certificate expiry: 2026-07-29
+- certificate SANs include `authelia.theau.net`, `coolify.theau.net`,
+  `jellyfin.theau.net`, `prowlarr.theau.net`, `qbit.theau.net`,
+  `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
 
 The deployed service edge behavior was verified from outside the VPS:
 
@@ -40,7 +41,11 @@ The deployed service edge behavior was verified from outside the VPS:
 - `https://users.theau.net/`: Authelia redirect before LLDAP UI login
 - `https://coolify.theau.net/`: Authelia redirect before Coolify
 - `https://wg.theau.net/`: Authelia redirect before WGDashboard
+- `https://jellyfin.theau.net/`: Authelia redirect before Jellyfin on
+  `jellyfin-kot`
 - `https://prowlarr.theau.net/`: Authelia redirect before Prowlarr
+- `https://qbit.theau.net/`: Authelia redirect before qBittorrent on
+  `seedbox-kot`
 - `https://seer.theau.net/`: Authelia redirect before Seerr
 - undeclared HTTPS hostnames: default `404`
 
@@ -298,7 +303,9 @@ The `theau.net` service certificate is issued separately with cert name
 
 - `authelia.theau.net`
 - `coolify.theau.net`
+- `jellyfin.theau.net`
 - `prowlarr.theau.net`
+- `qbit.theau.net`
 - `seer.theau.net`
 - `users.theau.net`
 - `wg.theau.net`
@@ -338,12 +345,18 @@ Authelia authorization uses LLDAP groups:
 
 - `users.theau.net`: `admins` at the edge, then LLDAP UI login
 - `coolify.theau.net`: `paas-admins` or `admins`
+- `jellyfin.theau.net`: `media-users`, `media-admins`, or `admins`
 - `prowlarr.theau.net`: `media-admins` or `admins`
+- `qbit.theau.net`: `media-admins` or `admins`
 - `seer.theau.net`: `media-users`, `media-admins`, or `admins`
 - `wg.theau.net`: `wg-admin`
 
 Prowlarr binds to `127.0.0.1:9696` and is configured with
 `AuthenticationMethod=External`; it relies on the Authelia/LLDAP edge gate.
+Jellyfin is reached through the `jellyfin-kot` WireGuard peer at
+`10.8.0.21:8096`. qBittorrent is reached through the `seedbox-kot` Gluetun peer
+at `10.8.0.22:8080`; the qBittorrent config trusts only the VPS WireGuard address
+for WebUI auth bypass, so public access is controlled by Authelia/LLDAP.
 Seerr binds to `127.0.0.1:5055`; it does not have a generic Authelia/LLDAP
 login backend in the packaged app, so WAN access is controlled by the
 Authelia/LLDAP edge gate.

@@ -50,6 +50,8 @@ Authelia policies use LLDAP groups:
 | Coolify admin UI | `paas-admins`, `admins` |
 | Forgejo web UI | `git-users`, `git-admins`, `admins` |
 | Prowlarr admin UI | `media-admins`, `admins` |
+| qBittorrent WebUI | `media-admins`, `admins` |
+| Jellyfin | `media-users`, `media-admins`, `admins` |
 | Jellyseerr | `media-users`, `media-admins`, `admins` |
 | Wiki offline | `wiki-users`, `admins` |
 | Monitoring | `monitoring-users`, `infra-admins`, `admins` |
@@ -80,7 +82,9 @@ The current Ubuntu VPS bundle runs:
 - `users.theau.net` -> LLDAP UI, route-gated by Authelia `admins`; LLDAP still handles its own UI login
 - `wg.theau.net` -> WGDashboard, protected by Authelia `wg-admin`
 - `coolify.theau.net` -> Coolify, edge-protected by Authelia `paas-admins` or `admins`
+- `jellyfin.theau.net` -> Jellyfin, edge-protected by Authelia `media-users`, `media-admins`, or `admins`
 - `prowlarr.theau.net` -> Prowlarr, edge-protected by Authelia `media-admins` or `admins`
+- `qbit.theau.net` -> qBittorrent WebUI, edge-protected by Authelia `media-admins` or `admins`
 - `seer.theau.net` -> Seerr, edge-protected by Authelia `media-users`, `media-admins`, or `admins`
 
 Bootstrap credentials are generated on the VPS:
