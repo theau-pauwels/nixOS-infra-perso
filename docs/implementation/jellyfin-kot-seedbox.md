@@ -3,8 +3,17 @@
 ## Status
 
 This is the phase 2 and phase 2.5 declarative target for Kot media services.
-It does not deploy itself to Proxmox. It provides NixOS host configurations and
-service modules that can be evaluated and built before a real cutover.
+`jellyfin-kot` and `seedbox-kot` were deployed as fresh NixOS VMs on
+2026-04-30. `jellyseerr-kot` remains a declarative target only.
+
+Current deployed VMs:
+
+- `jellyfin-kot`: `10.1.10.118`
+- `seedbox-kot`: `10.1.10.123`
+
+Both deployed VMs use UEFI `systemd-boot`, root label `nixos`, boot label
+`NIXBOOT`, NetworkManager, and the `theau-vps-deploy` SSH key for the `theau`
+admin account. The live installer password was used only to bootstrap the key.
 
 ## Context
 
@@ -92,10 +101,17 @@ Flake outputs:
 
 ## Storage Layout
 
-The host files intentionally use placeholder disk labels until Proxmox and
-NAS-Kot storage are audited.
+The deployed `jellyfin-kot` and `seedbox-kot` VMs currently use their root disk
+for service data because NAS-Kot is not available yet. Service data lives under
+`/srv`:
 
-Planned mounts:
+```text
+jellyfin-kot /srv/jellyfin
+seedbox-kot  /srv/seedbox
+```
+
+Future NAS-backed mounts:
+
 
 ```text
 jellyfin-kot   /srv/jellyfin    /dev/disk/by-label/jellyfin-data
@@ -103,8 +119,9 @@ seedbox-kot    /srv/seedbox     /dev/disk/by-label/seedbox-data
 jellyseerr-kot /srv/jellyseerr  /dev/disk/by-label/jellyseerr-data
 ```
 
-Before deployment, replace these labels with real NAS-Kot backed VM disks,
-virtio block devices, NFS mounts, or stable `/dev/disk/by-id/...` paths.
+When NAS-Kot is ready, replace the root-disk service data with real NAS-Kot
+backed VM disks, virtio block devices, NFS mounts, or stable
+`/dev/disk/by-id/...` paths.
 
 ## Jellyfin
 
@@ -147,6 +164,9 @@ nvidia-smi
 systemctl status jellyfin
 ```
 
+Validated on `2026-04-30`: `nvidia-smi` reports driver `580.142` and the
+`Quadro P400` at PCI address `00000000:01:00.0`.
+
 Then enable hardware acceleration in the Jellyfin UI with the NVIDIA NVENC
 backend.
 
@@ -180,6 +200,10 @@ WIREGUARD_PUBLIC_KEY=REPLACE_WITH_IONOS_VPS2_SERVER_PUBLIC_KEY
 ```
 
 This file must not be committed.
+
+The seedbox containers are gated by this file. Until it exists,
+`podman-seedbox-gluetun.service` and `podman-seedbox-qbittorrent.service` are
+skipped instead of starting with incomplete VPN credentials.
 
 ## Jellyseerr
 
