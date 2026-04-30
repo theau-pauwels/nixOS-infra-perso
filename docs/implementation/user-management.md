@@ -56,8 +56,11 @@ Authelia policies use LLDAP groups:
 | Wiki offline | `wiki-users`, `admins` |
 | Monitoring | `monitoring-users`, `infra-admins`, `admins` |
 
-Privileged routes should use Authelia `two_factor`. Public raw service ports
-remain closed or bound to localhost.
+Privileged routes should use Authelia `two_factor` where the application flow
+supports it cleanly. The current `qbit.theau.net` route uses a one-factor LLDAP
+group gate because the qBittorrent WebUI polls `/api/v2/*` from JavaScript and
+otherwise loops on Authelia redirects. Public raw service ports remain closed or
+bound to localhost.
 
 ## Application Accounts
 

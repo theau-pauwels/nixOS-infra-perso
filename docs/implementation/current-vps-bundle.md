@@ -356,7 +356,8 @@ Prowlarr binds to `127.0.0.1:9696` and is configured with
 Jellyfin is reached through the `jellyfin-kot` WireGuard peer at
 `10.8.0.21:8096`. qBittorrent is reached through the `seedbox-kot` Gluetun peer
 at `10.8.0.22:8080`; the qBittorrent config trusts only the VPS WireGuard address
-for WebUI auth bypass, so public access is controlled by Authelia/LLDAP.
+for WebUI auth bypass, so public access is controlled by an Authelia one-factor
+LLDAP group gate for `media-admins` or `admins`.
 The Jellyfin vhost keeps the app behind Authelia, but bypasses the public
 Jellyfin setup/API endpoints required by the web client bootstrap:
 `/System/Info/Public`, `/system/info/public`, `/web/manifest.json`,

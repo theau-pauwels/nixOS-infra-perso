@@ -37,7 +37,7 @@ public exposure is required.
 | Authelia | `auth.theau-vps.duckdns.org` | public HTTPS | central login/2FA and service authorization |
 | LLDAP user manager | `users.theau.net` / `users.theau-vps.duckdns.org` | Authelia edge gate, then LLDAP login | Authelia `admins` only at edge; LLDAP credentials in app |
 | Prowlarr | `prowlarr.theau.net` | SSO-protected | Authelia `media-admins` or `admins` |
-| qBittorrent WebUI | `qbit.theau.net` | SSO-protected | Authelia `media-admins` or `admins`; qBittorrent trusts only the VPS WireGuard source |
+| qBittorrent WebUI | `qbit.theau.net` | SSO-protected | Authelia one-factor for `media-admins` or `admins`; qBittorrent trusts only the VPS WireGuard source |
 | Seerr | `seer.theau.net` | SSO-protected | Authelia `media-users`, `media-admins`, or `admins` |
 | Jellyfin | `jellyfin.theau.net` | SSO-protected | Authelia `media-users`, `media-admins`, or `admins` |
 | Jellyseerr | `jellyseerr.theau-vps.duckdns.org` | SSO-protected | Authelia authenticated users |

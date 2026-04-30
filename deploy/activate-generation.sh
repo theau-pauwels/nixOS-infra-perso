@@ -333,7 +333,7 @@ access_control:
         - group:admins
         - group:media-admins
     - domain: ${QBIT_DOMAIN}
-      policy: two_factor
+      policy: one_factor
       subject:
         - group:admins
         - group:media-admins
