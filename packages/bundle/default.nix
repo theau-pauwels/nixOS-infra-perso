@@ -216,6 +216,13 @@ let
     }
   '';
 
+  jellyfinPublicLocation = matcher: upstream: ''
+    location ${matcher} {
+      ${proxyHeaders}
+      proxy_pass ${upstream};
+    }
+  '';
+
   nginxSiteHttps = ''
     server {
       listen 80 default_server;
@@ -430,6 +437,11 @@ let
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
       ${autheliaAuthLocation}
+      ${jellyfinPublicLocation "= /System/Info/Public" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /system/info/public" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /web/manifest.json" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /Startup/Configuration" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "^~ /Localization/" "http://10.8.0.21:8096"}
 
       location / {
         auth_request /internal/authelia/authz;
