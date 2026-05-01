@@ -184,6 +184,8 @@ let
       internal;
       proxy_pass http://127.0.0.1:9091/api/authz/auth-request;
       proxy_pass_request_body off;
+      proxy_set_header Authorization "";
+      proxy_set_header Proxy-Authorization "";
       proxy_set_header Content-Length "";
       proxy_set_header X-Original-Method $request_method;
       proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
@@ -439,6 +441,16 @@ let
       ${autheliaAuthLocation}
       ${jellyfinPublicLocation "= /System/Info/Public" "http://10.8.0.21:8096"}
       ${jellyfinPublicLocation "= /system/info/public" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /System/Endpoint" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /system/endpoint" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /Users/Public" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /users/public" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /Branding/Configuration" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /branding/configuration" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /Branding/Css" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /branding/css" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /QuickConnect/Enabled" "http://10.8.0.21:8096"}
+      ${jellyfinPublicLocation "= /quickconnect/enabled" "http://10.8.0.21:8096"}
       ${jellyfinPublicLocation "= /web/manifest.json" "http://10.8.0.21:8096"}
       ${jellyfinPublicLocation "= /Startup/Configuration" "http://10.8.0.21:8096"}
       ${jellyfinPublicLocation "^~ /Localization/" "http://10.8.0.21:8096"}

@@ -361,7 +361,13 @@ LLDAP group gate for `media-admins` or `admins`.
 The Jellyfin vhost keeps the app behind Authelia, but bypasses the public
 Jellyfin setup/API endpoints required by the web client bootstrap:
 `/System/Info/Public`, `/system/info/public`, `/web/manifest.json`,
+`/System/Endpoint`, `/system/endpoint`, `/Users/Public`, `/users/public`,
+`/Branding/Configuration`, `/Branding/Css`, `/QuickConnect/Enabled`,
 `/Localization/*`, and `/Startup/Configuration`.
+The Authelia auth subrequest intentionally strips `Authorization` and
+`Proxy-Authorization` before calling Authelia so Jellyfin's
+`Authorization: MediaBrowser ...` API header is still passed to Jellyfin but is
+not misinterpreted by Authelia.
 Seerr binds to `127.0.0.1:5055`; it does not have a generic Authelia/LLDAP
 login backend in the packaged app, so WAN access is controlled by the
 Authelia/LLDAP edge gate.
