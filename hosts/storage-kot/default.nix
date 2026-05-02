@@ -72,8 +72,18 @@
         "security" = "user";
         "map to guest" = "Bad Password";
         "server min protocol" = "SMB3_00";
-        "hosts allow" = "10.224.20.0/24 10.1.10.0/24 127.0.0.0/8";
+        "hosts allow" = "10.8.0.0/24 10.224.20.0/24 10.1.10.0/24 127.0.0.0/8";
         "hosts deny" = "0.0.0.0/0";
+      };
+      nas = {
+        path = "/srv/nas";
+        browseable = "yes";
+        "read only" = "no";
+        "guest ok" = "yes";
+        "create mask" = "0664";
+        "directory mask" = "0775";
+        "force user" = "theau";
+        "force group" = "users";
       };
       jellyfin = {
         path = "/srv/nas/jellyfin";
