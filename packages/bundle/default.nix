@@ -419,6 +419,21 @@ let
       add_header X-Content-Type-Options nosniff always;
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
+      location /share {
+        ${proxyHeaders}
+        proxy_pass http://10.8.0.23:8082;
+      }
+
+      location /api/public {
+        ${proxyHeaders}
+        proxy_pass http://10.8.0.23:8082;
+      }
+
+      location /static {
+        ${proxyHeaders}
+        proxy_pass http://10.8.0.23:8082;
+      }
+
       ${autheliaProtectedLocation "http://10.8.0.23:8082"}
     }
 
