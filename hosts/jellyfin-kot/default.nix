@@ -88,6 +88,20 @@
     logDir = "/srv/jellyfin/log";
   };
 
+  systemd.services.jellyfin.preStart = ''
+    NETWORK_XML=/srv/jellyfin/config/network.xml
+    cat > "$NETWORK_XML" << XML
+<?xml version="1.0" encoding="utf-8"?>
+<NetworkConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <KnownProxies>
+    <string>10.8.0.0/24</string>
+  </KnownProxies>
+  <RemoteIPFilter>true</RemoteIPFilter>
+</NetworkConfiguration>
+XML
+    chown jellyfin:jellyfin "$NETWORK_XML"
+  '';
+
   users.users.jellyfin.extraGroups = [
     "render"
     "video"
