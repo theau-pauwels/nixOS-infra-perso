@@ -47,6 +47,8 @@
     };
   };
 
+  services.rpcbind.enable = false;
+
   personalInfra.services.prowlarr.enable = false;
   personalInfra.observability.exporters.enable = false;
   personalInfra.backup.restic.enable = false;
@@ -68,6 +70,21 @@
   boot.growPartition = true;
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+
+  fileSystems."/srv/seedbox/downloads" = {
+    device = "//10.1.10.124/downloads";
+    fsType = "cifs";
+    options = [
+      "guest"
+      "uid=991"
+      "gid=991"
+      "file_mode=0664"
+      "dir_mode=0775"
+      "nofail"
+      "_netdev"
+      "x-systemd.requires=network-online.target"
+    ];
+  };
 
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";

@@ -14,6 +14,7 @@ let
     hostSpec.serviceDomains or {
       authelia = "authelia.theau.net";
       coolify = "coolify.theau.net";
+      file = "file.theau.net";
       jellyfin = "jellyfin.theau.net";
       prowlarr = "prowlarr.theau.net";
       qbit = "qbit.theau.net";
@@ -25,6 +26,7 @@ let
   serviceDomainNames = [
     serviceDomains.authelia
     serviceDomains.coolify
+    serviceDomains.file
     serviceDomains.jellyfin
     serviceDomains.prowlarr
     serviceDomains.qbit
@@ -397,6 +399,27 @@ let
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
       ${autheliaProtectedLocation "http://127.0.0.1:8000"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.file};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://10.8.0.23:8082"}
     }
 
     server {

@@ -94,6 +94,7 @@
   ];
 
   environment.systemPackages = with pkgs; [
+    cifs-utils
     pciutils
   ];
 
@@ -111,6 +112,28 @@
   boot.growPartition = true;
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+
+  fileSystems."/srv/jellyfin/media" = {
+    device = "//10.224.20.10/jellyfin";
+    fsType = "cifs";
+    options = [
+      "guest"
+      "uid=1000"
+      "gid=1000"
+      "file_mode=0664"
+      "dir_mode=0775"
+      "nofail"
+      "x-systemd.automount"
+      "x-systemd.idle-timeout=60"
+      "cache=loose"
+      "actimeo=3"
+      "noacl"
+      "noserverino"
+      "rsize=4194304"
+      "wsize=4194304"
+      "vers=3.1.1"
+    ];
+  };
 
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";

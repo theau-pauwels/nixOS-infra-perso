@@ -13,6 +13,7 @@ in
   serviceDomains = {
     authelia = "authelia.theau.net";
     coolify = "coolify.theau.net";
+    file = "file.theau.net";
     jellyfin = "jellyfin.theau.net";
     prowlarr = "prowlarr.theau.net";
     qbit = "qbit.theau.net";

@@ -40,6 +40,11 @@
     allowedIPs = [ "10.8.0.22/32" ];
   }
   {
+    name = "storage-kot";
+    publicKey = "eAzR2K1KCpY2jMy8IBzgUurvLx4Jg1vqklIGbivngwA=";
+    allowedIPs = [ "10.8.0.23/32" ];
+  }
+  {
     name = "mom-edge site gateway skeleton";
     enabled = false;
     # Placeholder public key. Replace with the real Mom edge public key before

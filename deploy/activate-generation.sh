@@ -79,6 +79,12 @@ host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 print(host.get("serviceDomains", {}).get("coolify", "coolify.theau.net"))
 PY
 )"
+FILE_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("file", "file.theau.net"))
+PY
+)"
 JELLYFIN_DOMAIN="$(python3 - <<'PY'
 import json, os
 host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
@@ -338,6 +344,12 @@ access_control:
         - group:admins
         - group:media-admins
     - domain: ${JELLYFIN_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+        - group:media-admins
+        - group:media-users
+    - domain: ${FILE_DOMAIN}
       policy: one_factor
       subject:
         - group:admins
