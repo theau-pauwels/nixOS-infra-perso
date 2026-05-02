@@ -549,6 +549,11 @@ let
       add_header X-Content-Type-Options nosniff always;
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
+      location /rest {
+        ${proxyHeaders}
+        proxy_pass http://127.0.0.1:4533;
+      }
+
       ${autheliaProtectedLocation "http://127.0.0.1:4533"}
     }
 
