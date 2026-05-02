@@ -343,6 +343,7 @@ access_control:
       subject:
         - group:admins
         - group:media-admins
+        - group:media-users
     - domain: ${JELLYFIN_DOMAIN}
       policy: one_factor
       subject:

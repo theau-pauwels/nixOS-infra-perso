@@ -308,6 +308,59 @@ Suggested migration:
 7. Move users to the SSO-backed flow.
 8. Retire the old `/opt/seedbox` stack only after all checks pass.
 
+## Storage integration (storage-kot NAS)
+
+Jellyfin media and seedbox downloads are served from a shared `storage-kot`
+NixOS VM via Samba/CIFS, replacing local disk storage.
+
+### CIFS mounts
+
+**jellyfin-kot** (`hosts/jellyfin-kot/default.nix`):
+
+```nix
+fileSystems."/srv/jellyfin/media" = {
+  device = "//10.1.10.124/jellyfin";
+  fsType = "cifs";
+  options = [
+    "guest" "uid=1000" "gid=1000" "file_mode=0664" "dir_mode=0775"
+    "nofail" "_netdev"
+    "cache=loose" "actimeo=3" "noacl" "noserverino"
+    "rsize=4194304" "wsize=4194304" "vers=3.1.1"
+  ];
+};
+```
+
+**seedbox-kot** (`hosts/seedbox-kot/default.nix`):
+
+```nix
+fileSystems."/srv/seedbox/downloads" = {
+  device = "//10.1.10.124/downloads";
+  fsType = "cifs";
+  options = [
+    "guest" "uid=991" "gid=991" "file_mode=0664" "dir_mode=0775"
+    "nofail" "_netdev"
+    "x-systemd.requires=network-online.target"
+  ];
+};
+```
+
+The seedbox container maps `/srv/seedbox/downloads:/downloads`. The seedbox
+module preStart enforces `Session\DefaultSavePath=/downloads` in the
+qBittorrent config to prevent save path drift across restarts.
+
+### qBittorrent reverse proxy auth
+
+qBittorrent v5.1.x uses `bypass_auth_subnet_whitelist` (stored as
+`WebUI\AuthSubnetWhitelist` in the INI config) to skip its own authentication
+for requests from the VPS WireGuard IP (`10.8.0.1`). The seedbox module
+preStart writes this on first config creation.
+
+If qBittorrent shows "Unauthorized" after Authelia login, check:
+- qBittorrent container is running (`systemctl status podman-seedbox-qbittorrent`)
+- `WebUI\AuthSubnetWhitelist=10.8.0.0/24` in the qBittorrent config
+- `WebUI\AuthSubnetWhitelistEnabled=true`
+- VPS can reach qBittorrent: `curl -sI http://10.8.0.22:8080/` should return 200
+
 ## Rollback
 
 Rollback before cutover:

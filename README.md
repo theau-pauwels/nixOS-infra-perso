@@ -26,6 +26,7 @@ The target architecture is documented in:
 - [`docs/implementation/current-vps-bundle.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/current-vps-bundle.md)
 - [`docs/implementation/future-personal-ssh-access-platform.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/future-personal-ssh-access-platform.md)
 - [`docs/implementation/jellyfin-kot-seedbox.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/jellyfin-kot-seedbox.md)
+- [`docs/implementation/storage-kot-nas.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/storage-kot-nas.md)
 - [`docs/implementation/vps-headscale.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/vps-headscale.md)
 - [`docs/implementation/vps-caddy.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/vps-caddy.md)
 - [`docs/implementation/nas-kot-zfs.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/nas-kot-zfs.md)
@@ -95,11 +96,15 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - Prowlarr on `127.0.0.1:9696`
 - Seerr on `127.0.0.1:5055`
 - public vhosts for `authelia.theau.net`, `coolify.theau.net`,
-  `jellyfin.theau.net`, `prowlarr.theau.net`, `qbit.theau.net`,
-  `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
+  `file.theau.net`, `jellyfin.theau.net`, `prowlarr.theau.net`,
+  `qbit.theau.net`, `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
 - Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard,
-  `paas-admins` for Coolify, `media-admins` for Prowlarr/qBittorrent,
-  `media-users` for Jellyfin/Seerr, `admins` for administration)
+  `paas-admins` for Coolify, `admins`/`media-admins`/`media-users` for
+  qBittorrent/Jellyfin/Seerr/FileBrowser, `admins` for administration)
+- FileBrowser at `file.theau.net` with Authelia proxy auth (Remote-User
+  header) — serves `/srv/nas` from storage-kot
+- Samba shares on storage-kot: `jellyfin` (media) and `downloads` (seedbox),
+  mounted via CIFS on jellyfin-kot and seedbox-kot
 - a default Nginx vhost returning 404 for unlisted hostnames
 - nftables firewall
 - iperf3

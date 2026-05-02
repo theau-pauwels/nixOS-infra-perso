@@ -32,8 +32,8 @@ As of 2026-04-30, `IONOS-VPS2-DEPLOY` is running:
 - active generation: `/opt/theau-vps/generations/20260430134153`
 - `theau-net-services` certificate expiry: 2026-07-29
 - certificate SANs include `authelia.theau.net`, `coolify.theau.net`,
-  `jellyfin.theau.net`, `prowlarr.theau.net`, `qbit.theau.net`,
-  `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
+  `file.theau.net`, `jellyfin.theau.net`, `prowlarr.theau.net`,
+  `qbit.theau.net`, `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
 
 The deployed service edge behavior was verified from outside the VPS:
 
@@ -41,6 +41,9 @@ The deployed service edge behavior was verified from outside the VPS:
 - `https://users.theau.net/`: Authelia redirect before LLDAP UI login
 - `https://coolify.theau.net/`: Authelia redirect before Coolify
 - `https://wg.theau.net/`: Authelia redirect before WGDashboard
+- `https://file.theau.net/`: Authelia redirect before FileBrowser on
+  `storage-kot` (WireGuard `10.8.0.23:8082`), proxy auth via `Remote-User`.
+  Access requires `admins`, `media-admins`, or `media-users` group.
 - `https://jellyfin.theau.net/`: Authelia redirect before Jellyfin on
   `jellyfin-kot`
 - `https://prowlarr.theau.net/`: Authelia redirect before Prowlarr
@@ -345,9 +348,10 @@ Authelia authorization uses LLDAP groups:
 
 - `users.theau.net`: `admins` at the edge, then LLDAP UI login
 - `coolify.theau.net`: `paas-admins` or `admins`
+- `file.theau.net`: `media-users`, `media-admins`, or `admins`
 - `jellyfin.theau.net`: `media-users`, `media-admins`, or `admins`
 - `prowlarr.theau.net`: `media-admins` or `admins`
-- `qbit.theau.net`: `media-admins` or `admins`
+- `qbit.theau.net`: `media-users`, `media-admins`, or `admins`
 - `seer.theau.net`: `media-users`, `media-admins`, or `admins`
 - `wg.theau.net`: `wg-admin`
 
@@ -355,9 +359,10 @@ Prowlarr binds to `127.0.0.1:9696` and is configured with
 `AuthenticationMethod=External`; it relies on the Authelia/LLDAP edge gate.
 Jellyfin is reached through the `jellyfin-kot` WireGuard peer at
 `10.8.0.21:8096`. qBittorrent is reached through the `seedbox-kot` Gluetun peer
-at `10.8.0.22:8080`; the qBittorrent config trusts only the VPS WireGuard address
-for WebUI auth bypass, so public access is controlled by an Authelia one-factor
-LLDAP group gate for `media-admins` or `admins`.
+at `10.8.0.22:8080`; the qBittorrent config trusts the VPS WireGuard subnet
+(`10.8.0.0/24`) for WebUI auth bypass, so public access is controlled by an
+Authelia one-factor LLDAP group gate. FileBrowser at `file.theau.net` proxies to
+`storage-kot` at `10.8.0.23:8082` with Authelia proxy auth (Remote-User header).
 The Jellyfin vhost keeps the app behind Authelia, but bypasses the public
 Jellyfin setup/API endpoints required by the web client bootstrap:
 `/System/Info/Public`, `/system/info/public`, `/web/manifest.json`,
