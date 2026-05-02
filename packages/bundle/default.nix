@@ -21,6 +21,9 @@ let
       seer = "seer.theau.net";
       sonarr = "sonarr.theau.net";
       radarr = "radarr.theau.net";
+      lidarr = "lidarr.theau.net";
+      navidrome = "music.theau.net";
+      musicseerr = "musicseerr.theau.net";
       users = "users.theau.net";
       wg = "wg.theau.net";
       certName = "theau-net-services";
@@ -35,6 +38,9 @@ let
     serviceDomains.seer
     serviceDomains.sonarr
     serviceDomains.radarr
+    serviceDomains.lidarr
+    serviceDomains.navidrome
+    serviceDomains.musicseerr
     serviceDomains.users
     serviceDomains.wg
   ];
@@ -507,6 +513,69 @@ let
     server {
       listen 443 ssl http2;
       listen [::]:443 ssl http2;
+      server_name ${serviceDomains.lidarr};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:8686"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.navidrome};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:4533"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.musicseerr};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:5056"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
       server_name ${serviceDomains.jellyfin};
 
       ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
@@ -868,6 +937,90 @@ let
     WantedBy=multi-user.target
   '';
 
+  lidarrUnit = ''
+    [Unit]
+    Description=theau-vps Lidarr
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=lidarr
+    Group=lidarr
+    WorkingDirectory=/var/lib/lidarr
+    Environment=HOME=/var/lib/lidarr
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o lidarr -g lidarr -m 0750 /var/lib/lidarr
+    ExecStart=${pkgs.lidarr}/bin/Lidarr -nobrowser -data=/var/lib/lidarr
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/lidarr
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  navidromeUnit = ''
+    [Unit]
+    Description=theau-vps Navidrome
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=navidrome
+    Group=navidrome
+    Environment=ND_MUSICFOLDER=/srv/nas/jellyfin/music
+    Environment=ND_PORT=4533
+    Environment=ND_ADDRESS=127.0.0.1
+    Environment=ND_DATAFOLDER=/var/lib/navidrome
+    Environment=ND_SCANSCHEDULE=30m
+    Environment=ND_LOGLEVEL=info
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o navidrome -g navidrome -m 0750 /var/lib/navidrome
+    ExecStart=${pkgs.navidrome}/bin/navidrome
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/navidrome
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  musicseerrUnit = ''
+    [Unit]
+    Description=theau-vps MusicSeerr
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=musicseerr
+    Group=musicseerr
+    Environment=PORT=5056
+    Environment=HOST=127.0.0.1
+    WorkingDirectory=/var/lib/musicseerr
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o musicseerr -g musicseerr -m 0750 /var/lib/musicseerr
+    ExecStart=${pkgs.podman}/bin/podman run --rm --name musicseerr -p 127.0.0.1:5056:5056 -v /var/lib/musicseerr:/app/config ghcr.io/mentalblank/musicseerr:latest
+    ExecStop=${pkgs.podman}/bin/podman stop musicseerr
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/musicseerr
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
   firewallUnit = ''
     [Unit]
     Description=theau-vps firewall
@@ -1086,6 +1239,18 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${radarrUnit}
   EOF
 
+  cat > "$out/share/theau-vps/systemd/theau-vps-lidarr.service" <<'EOF'
+  ${lidarrUnit}
+  EOF
+
+  cat > "$out/share/theau-vps/systemd/theau-vps-navidrome.service" <<'EOF'
+  ${navidromeUnit}
+  EOF
+
+  cat > "$out/share/theau-vps/systemd/theau-vps-musicseerr.service" <<'EOF'
+  ${musicseerrUnit}
+  EOF
+
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'
   ${certbotRenewService}
   EOF
@@ -1128,5 +1293,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ln -s ${pkgs.seerr} "$out/share/theau-vps/seerr-package"
   ln -s ${pkgs.sonarr} "$out/share/theau-vps/sonarr-package"
   ln -s ${pkgs.radarr} "$out/share/theau-vps/radarr-package"
+  ln -s ${pkgs.lidarr} "$out/share/theau-vps/lidarr-package"
+  ln -s ${pkgs.navidrome} "$out/share/theau-vps/navidrome-package"
   ln -s ${pkgs.openssl} "$out/share/theau-vps/openssl-package"
 ''

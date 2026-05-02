@@ -103,6 +103,24 @@ host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 print(host.get("serviceDomains", {}).get("qbit", "qbit.theau.net"))
 PY
 )"
+LIDARR_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("lidarr", "lidarr.theau.net"))
+PY
+)"
+NAVIDROME_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("navidrome", "music.theau.net"))
+PY
+)"
+MUSICSEERR_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("musicseerr", "musicseerr.theau.net"))
+PY
+)"
 SEER_DOMAIN="$(python3 - <<'PY'
 import json, os
 host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
@@ -196,6 +214,27 @@ if ! id -u radarr >/dev/null 2>&1; then
   useradd --system --gid radarr --home-dir /var/lib/radarr --shell /usr/sbin/nologin --no-create-home radarr
 fi
 
+if ! getent group lidarr >/dev/null; then
+  groupadd --system lidarr
+fi
+if ! id -u lidarr >/dev/null 2>&1; then
+  useradd --system --gid lidarr --home-dir /var/lib/lidarr --shell /usr/sbin/nologin --no-create-home lidarr
+fi
+
+if ! getent group navidrome >/dev/null; then
+  groupadd --system navidrome
+fi
+if ! id -u navidrome >/dev/null 2>&1; then
+  useradd --system --gid navidrome --home-dir /var/lib/navidrome --shell /usr/sbin/nologin --no-create-home navidrome
+fi
+
+if ! getent group musicseerr >/dev/null; then
+  groupadd --system musicseerr
+fi
+if ! id -u musicseerr >/dev/null 2>&1; then
+  useradd --system --gid musicseerr --home-dir /var/lib/musicseerr --shell /usr/sbin/nologin --no-create-home musicseerr
+fi
+
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia/assets
 install -d -o lldap -g lldap -m 0750 /opt/theau-vps/state/lldap
@@ -203,6 +242,9 @@ install -d -o prowlarr -g prowlarr -m 0750 /opt/theau-vps/state/prowlarr /var/li
 install -d -o seerr -g seerr -m 0750 /opt/theau-vps/state/seerr /var/lib/seerr
 install -d -o sonarr -g sonarr -m 0750 /opt/theau-vps/state/sonarr /var/lib/sonarr
 install -d -o radarr -g radarr -m 0750 /opt/theau-vps/state/radarr /var/lib/radarr
+install -d -o lidarr -g lidarr -m 0750 /opt/theau-vps/state/lidarr /var/lib/lidarr
+install -d -o navidrome -g navidrome -m 0750 /var/lib/navidrome
+install -d -o musicseerr -g musicseerr -m 0750 /var/lib/musicseerr
 
 AUTHELIA_STATE="/opt/theau-vps/state/authelia"
 AUTHELIA_PASSWORD_FILE="$AUTHELIA_STATE/admin-password"
@@ -229,6 +271,9 @@ SONARR_CONFIG_FILE="/var/lib/sonarr/config.xml"
 RADARR_STATE="/opt/theau-vps/state/radarr"
 RADARR_API_KEY_FILE="$RADARR_STATE/api-key"
 RADARR_CONFIG_FILE="/var/lib/radarr/config.xml"
+LIDARR_STATE="/opt/theau-vps/state/lidarr"
+LIDARR_API_KEY_FILE="$LIDARR_STATE/api-key"
+LIDARR_CONFIG_FILE="/var/lib/lidarr/config.xml"
 
 if [[ ! -s "$AUTHELIA_PASSWORD_FILE" ]]; then
   umask 077
@@ -283,6 +328,11 @@ if [[ ! -s "$RADARR_API_KEY_FILE" ]]; then
   "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 16 > "$RADARR_API_KEY_FILE"
 fi
 
+if [[ ! -s "$LIDARR_API_KEY_FILE" ]]; then
+  umask 077
+  "$BUNDLE_ROOT/share/theau-vps/openssl-package/bin/openssl" rand -hex 16 > "$LIDARR_API_KEY_FILE"
+fi
+
 if [[ ! -s "$AUTHELIA_PASSWORD_HASH_FILE" ]]; then
   password="$(cat "$AUTHELIA_PASSWORD_FILE")"
   "$BUNDLE_ROOT/share/theau-vps/authelia-package/bin/authelia" crypto hash generate argon2 --password "$password" \
@@ -297,6 +347,7 @@ prowlarr_api_key="$(cat "$PROWLARR_API_KEY_FILE")"
 seerr_api_key="$(cat "$SEERR_API_KEY_FILE")"
 sonarr_api_key="$(cat "$SONARR_API_KEY_FILE")"
 radarr_api_key="$(cat "$RADARR_API_KEY_FILE")"
+lidarr_api_key="$(cat "$LIDARR_API_KEY_FILE")"
 
 cat > "$AUTHELIA_CREDENTIALS_FILE" <<EOF
 url: https://${AUTHELIA_DOMAIN}
@@ -379,6 +430,24 @@ cat > "$RADARR_CONFIG_FILE" <<EOF
 </Config>
 EOF
 
+cat > "$LIDARR_CONFIG_FILE" <<EOF
+<Config>
+  <LogLevel>info</LogLevel>
+  <UrlBase></UrlBase>
+  <Port>8686</Port>
+  <BindAddress>127.0.0.1</BindAddress>
+  <SslPort>6969</SslPort>
+  <EnableSsl>False</EnableSsl>
+  <LaunchBrowser>False</LaunchBrowser>
+  <AuthenticationMethod>External</AuthenticationMethod>
+  <AuthenticationRequired>Enabled</AuthenticationRequired>
+  <Branch>main</Branch>
+  <ApiKey>${lidarr_api_key}</ApiKey>
+  <InstanceName>Lidarr</InstanceName>
+  <UpdateMechanism>External</UpdateMechanism>
+</Config>
+EOF
+
 cat > "$SEERR_ENVIRONMENT_FILE" <<EOF
 API_KEY=${seerr_api_key}
 EOF
@@ -429,6 +498,24 @@ access_control:
         - group:media-admins
         - group:media-users
     - domain: ${RADARR_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+        - group:media-admins
+        - group:media-users
+    - domain: ${LIDARR_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+        - group:media-admins
+        - group:media-users
+    - domain: ${NAVIDROME_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:admins
+        - group:media-admins
+        - group:media-users
+    - domain: ${MUSICSEERR_DOMAIN}
       policy: one_factor
       subject:
         - group:admins
@@ -485,6 +572,8 @@ chown sonarr:sonarr "$SONARR_API_KEY_FILE" "$SONARR_CONFIG_FILE"
 chmod 0600 "$SONARR_API_KEY_FILE" "$SONARR_CONFIG_FILE"
 chown radarr:radarr "$RADARR_API_KEY_FILE" "$RADARR_CONFIG_FILE"
 chmod 0600 "$RADARR_API_KEY_FILE" "$RADARR_CONFIG_FILE"
+chown lidarr:lidarr "$LIDARR_API_KEY_FILE" "$LIDARR_CONFIG_FILE"
+chmod 0600 "$LIDARR_API_KEY_FILE" "$LIDARR_CONFIG_FILE"
 chown seerr:seerr "$SEERR_API_KEY_FILE" "$SEERR_ENVIRONMENT_FILE"
 chmod 0600 "$SEERR_API_KEY_FILE" "$SEERR_ENVIRONMENT_FILE"
 chown root:root "$AUTHELIA_CREDENTIALS_FILE"
@@ -580,6 +669,9 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-prowlarr.service" /etc/system
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-seerr.service" /etc/systemd/system/theau-vps-seerr.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-sonarr.service" /etc/systemd/system/theau-vps-sonarr.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-radarr.service" /etc/systemd/system/theau-vps-radarr.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-lidarr.service" /etc/systemd/system/theau-vps-lidarr.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-navidrome.service" /etc/systemd/system/theau-vps-navidrome.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-musicseerr.service" /etc/systemd/system/theau-vps-musicseerr.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
@@ -616,8 +708,8 @@ PY
 sysctl --system >/dev/null
 /usr/sbin/sshd -t
 systemctl daemon-reload
-systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
-systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
@@ -655,6 +747,9 @@ systemctl restart theau-vps-prowlarr.service
 systemctl restart theau-vps-seerr.service
 systemctl restart theau-vps-sonarr.service
 systemctl restart theau-vps-radarr.service
+systemctl restart theau-vps-lidarr.service
+systemctl restart theau-vps-navidrome.service
+systemctl restart theau-vps-musicseerr.service
 systemctl restart theau-vps-wgdashboard.service
 systemctl restart theau-vps-certbot-renew.timer
 

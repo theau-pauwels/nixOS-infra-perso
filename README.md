@@ -98,9 +98,13 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - Prowlarr on `127.0.0.1:9696`
 - Sonarr on `127.0.0.1:8989` (TV shows, managed by Prowlarr/qBittorrent)
 - Radarr on `127.0.0.1:7878` (movies, managed by Prowlarr/qBittorrent)
+- Lidarr on `127.0.0.1:8686` (music, managed by Prowlarr/qBittorrent)
+- Navidrome on `127.0.0.1:4533` (music streaming, serves `/srv/nas/jellyfin/music`)
+- MusicSeerr on `127.0.0.1:5056` (music request UI, connects Lidarr + Navidrome)
 - Seerr on `127.0.0.1:5055`
 - public vhosts for `authelia.theau.net`, `coolify.theau.net`,
-  `file.theau.net`, `jellyfin.theau.net`, `prowlarr.theau.net`,
+  `file.theau.net`, `jellyfin.theau.net`, `lidarr.theau.net`,
+  `music.theau.net`, `musicseerr.theau.net`, `prowlarr.theau.net`,
   `qbit.theau.net`, `radarr.theau.net`, `seer.theau.net`,
   `sonarr.theau.net`, `users.theau.net`, and `wg.theau.net`
 - Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard,

@@ -20,6 +20,9 @@ in
     seer = "seer.theau.net";
     sonarr = "sonarr.theau.net";
     radarr = "radarr.theau.net";
+    lidarr = "lidarr.theau.net";
+    navidrome = "music.theau.net";
+    musicseerr = "musicseerr.theau.net";
     users = "users.theau.net";
     wg = "wg.theau.net";
     certName = "theau-net-services";
