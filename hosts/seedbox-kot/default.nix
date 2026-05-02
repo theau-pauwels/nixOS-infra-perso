@@ -80,6 +80,7 @@
       "gid=991"
       "file_mode=0664"
       "dir_mode=0775"
+      "noperm"
       "nofail"
       "_netdev"
       "x-systemd.requires=network-online.target"

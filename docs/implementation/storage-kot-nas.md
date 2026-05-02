@@ -58,21 +58,32 @@ Authelia's access control.
 
 | Share | Path | Purpose | Clients |
 |---|---|---|---|
-| `jellyfin` | `/srv/nas/jellyfin` | Jellyfin media library | jellyfin-kot (RO via CIFS) |
-| `downloads` | `/srv/nas/downloads` | qBittorrent downloads | seedbox-kot (RW via CIFS) |
+| `nas` | `/srv/nas` | Root share — single mount for hardlinks | All clients |
+| `jellyfin` | `/srv/nas/jellyfin` | Legacy — Jellyfin media library | Deprecated (use nas share) |
+| `downloads` | `/srv/nas/downloads` | Legacy — qBittorrent downloads | Deprecated (use nas share) |
 
-Samba is scoped to LAN subnets (`10.224.20.0/24`, `10.1.10.0/24`, `127.0.0.0/8`)
-with guest access and `force user = theau`.
+Samba is scoped to subnets (`10.8.0.0/24`, `10.224.20.0/24`, `10.1.10.0/24`,
+`127.0.0.0/8`) with guest access and `force user = theau`.
 
 ## Client mounts
 
-- **jellyfin-kot**: `//10.1.10.124/jellyfin` → `/srv/jellyfin/media` via CIFS
-  (`vers=3.1.1`, `rsize=4194304`, `cache=loose`, `actimeo=3`)
-- **seedbox-kot**: `//10.1.10.124/downloads` → `/srv/seedbox/downloads` via CIFS
-  (`uid=991,gid=991`, `_netdev`, `x-systemd.requires=network-online.target`)
+All clients mount the same `nas` share for a unified filesystem view.
+This enables hardlinks instead of copies — `mv` and `ln` between
+`downloads/_arr-work/` and `jellyfin/` are instant (server-side).
 
-Both mounts use the management bridge IP (`10.1.10.124`) for direct
-same-bridge connectivity, avoiding WireGuard overhead.
+| Client | Device | Mount | Options |
+|---|---|---|---|
+| jellyfin-kot | `//10.1.10.124/nas` | `/srv/nas` | `vers=3.1.1`, `rsize=4194304`, `cache=loose`, `actimeo=3` |
+| seedbox-kot | `//10.1.10.124/nas` | `/srv/nas` | `uid=991,gid=991,noperm`, `_netdev` |
+| VPS (*arr apps) | `//10.8.0.23/nas` | `/data/media` | `noperm` |
+
+**Important**: All mounts include `noperm` to bypass client-side CIFS
+permission checks. The Samba server handles permissions via `force user`.
+Without `noperm`, containerized apps (qBittorrent, Sonarr, Radarr) cannot
+write to CIFS directories even with correct UID mapping.
+
+Seedbox-kot has a symlink for qBittorrent compatibility:
+`/srv/seedbox/downloads` → `/srv/nas/downloads`.
 
 ## Deployment
 

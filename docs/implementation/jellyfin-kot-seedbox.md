@@ -311,15 +311,25 @@ Suggested migration:
 ## Storage integration (storage-kot NAS)
 
 Jellyfin media and seedbox downloads are served from a shared `storage-kot`
-NixOS VM via Samba/CIFS, replacing local disk storage.
+NixOS VM via Samba/CIFS, replacing local disk storage. All clients mount the
+same `nas` share for a unified filesystem view — hardlinks work between
+`downloads/_arr-work/` and `jellyfin/` because they're on the same mount.
 
-### CIFS mounts
+### CIFS mounts (unified)
+
+All machines mount `//storage-ip/nas` at a standard path:
+
+| Machine | Mount | Path |
+|---|---|---|
+| jellyfin-kot | `//10.1.10.124/nas` | `/srv/nas` |
+| seedbox-kot | `//10.1.10.124/nas` | `/srv/nas` |
+| VPS (*arr) | `//10.8.0.23/nas` | `/data/media` |
 
 **jellyfin-kot** (`hosts/jellyfin-kot/default.nix`):
 
 ```nix
-fileSystems."/srv/jellyfin/media" = {
-  device = "//10.1.10.124/jellyfin";
+fileSystems."/srv/nas" = {
+  device = "//10.1.10.124/nas";
   fsType = "cifs";
   options = [
     "guest" "uid=1000" "gid=1000" "file_mode=0664" "dir_mode=0775"
@@ -330,23 +340,32 @@ fileSystems."/srv/jellyfin/media" = {
 };
 ```
 
+Jellyfin library paths: `/srv/nas/jellyfin/movies/`, `/srv/nas/jellyfin/shows/`.
+
 **seedbox-kot** (`hosts/seedbox-kot/default.nix`):
 
 ```nix
-fileSystems."/srv/seedbox/downloads" = {
-  device = "//10.1.10.124/downloads";
+fileSystems."/srv/nas" = {
+  device = "//10.1.10.124/nas";
   fsType = "cifs";
   options = [
     "guest" "uid=991" "gid=991" "file_mode=0664" "dir_mode=0775"
-    "nofail" "_netdev"
+    "noperm" "nofail" "_netdev"
     "x-systemd.requires=network-online.target"
   ];
 };
 ```
 
-The seedbox container maps `/srv/seedbox/downloads:/downloads`. The seedbox
-module preStart enforces `Session\DefaultSavePath=/downloads` in the
-qBittorrent config to prevent save path drift across restarts.
+Symlink for qBittorrent container compatibility:
+`/srv/seedbox/downloads` → `/srv/nas/downloads`. The container maps
+`/srv/seedbox/downloads:/downloads` (podman resolves the symlink to
+`/srv/nas/downloads`). The seedbox module preStart enforces
+`Session\DefaultSavePath=/downloads`.
+
+**Critical**: Use `noperm` on all CIFS mounts where containerized apps
+(qBittorrent, Sonarr, Radarr) need write access. Without it, the CIFS client
+enforces local permission checks that don't match the container's UID mapping,
+causing "Permission denied" on file creation.
 
 ### qBittorrent reverse proxy auth
 
