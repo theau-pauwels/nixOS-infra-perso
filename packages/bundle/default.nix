@@ -1001,21 +1001,12 @@ let
 
     [Service]
     Type=simple
-    User=musicseerr
-    Group=musicseerr
-    Environment=PORT=5056
-    Environment=HOST=127.0.0.1
-    WorkingDirectory=/var/lib/musicseerr
-    ExecStartPre=${pkgs.coreutils}/bin/install -d -o musicseerr -g musicseerr -m 0750 /var/lib/musicseerr
-    ExecStart=${pkgs.podman}/bin/podman run --rm --name musicseerr -p 127.0.0.1:5056:5056 -v /var/lib/musicseerr:/app/config ghcr.io/mentalblank/musicseerr:latest
-    ExecStop=${pkgs.podman}/bin/podman stop musicseerr
+    User=root
+    ExecStartPre=-/usr/bin/docker rm -f musicseerr
+    ExecStart=/usr/bin/docker run --rm --name musicseerr --network=host -e PORT=5056 -v /var/lib/musicseerr:/app/config habirabbu/musicseerr:latest
+    ExecStop=/usr/bin/docker stop musicseerr
     Restart=on-failure
     RestartSec=5
-    NoNewPrivileges=yes
-    PrivateTmp=yes
-    ProtectSystem=full
-    ProtectHome=true
-    ReadWritePaths=/var/lib/musicseerr
 
     [Install]
     WantedBy=multi-user.target
