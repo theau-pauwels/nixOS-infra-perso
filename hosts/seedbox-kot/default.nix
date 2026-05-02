@@ -71,8 +71,8 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  fileSystems."/srv/seedbox/downloads" = {
-    device = "//10.1.10.124/downloads";
+  fileSystems."/srv/nas" = {
+    device = "//10.1.10.124/nas";
     fsType = "cifs";
     options = [
       "guest"

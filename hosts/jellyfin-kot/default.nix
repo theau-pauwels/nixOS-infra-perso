@@ -99,7 +99,6 @@
   <RemoteIPFilter>true</RemoteIPFilter>
 </NetworkConfiguration>
 XML
-    chown jellyfin:jellyfin "$NETWORK_XML"
   '';
 
   users.users.jellyfin.extraGroups = [
@@ -127,8 +126,8 @@ XML
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  fileSystems."/srv/jellyfin/media" = {
-    device = "//10.224.20.10/jellyfin";
+  fileSystems."/srv/nas" = {
+    device = "//10.1.10.124/nas";
     fsType = "cifs";
     options = [
       "guest"
@@ -137,8 +136,8 @@ XML
       "file_mode=0664"
       "dir_mode=0775"
       "nofail"
-      "x-systemd.automount"
-      "x-systemd.idle-timeout=60"
+      "_netdev"
+      "x-systemd.requires=network-online.target"
       "cache=loose"
       "actimeo=3"
       "noacl"
