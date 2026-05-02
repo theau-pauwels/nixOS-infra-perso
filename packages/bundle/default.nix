@@ -19,6 +19,8 @@ let
       prowlarr = "prowlarr.theau.net";
       qbit = "qbit.theau.net";
       seer = "seer.theau.net";
+      sonarr = "sonarr.theau.net";
+      radarr = "radarr.theau.net";
       users = "users.theau.net";
       wg = "wg.theau.net";
       certName = "theau-net-services";
@@ -31,6 +33,8 @@ let
     serviceDomains.prowlarr
     serviceDomains.qbit
     serviceDomains.seer
+    serviceDomains.sonarr
+    serviceDomains.radarr
     serviceDomains.users
     serviceDomains.wg
   ];
@@ -461,6 +465,48 @@ let
     server {
       listen 443 ssl http2;
       listen [::]:443 ssl http2;
+      server_name ${serviceDomains.sonarr};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:8989"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.radarr};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:7878"}
+    }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
       server_name ${serviceDomains.jellyfin};
 
       ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
@@ -770,6 +816,58 @@ let
     WantedBy=multi-user.target
   '';
 
+  sonarrUnit = ''
+    [Unit]
+    Description=theau-vps Sonarr
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=sonarr
+    Group=sonarr
+    WorkingDirectory=/var/lib/sonarr
+    Environment=HOME=/var/lib/sonarr
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o sonarr -g sonarr -m 0750 /var/lib/sonarr
+    ExecStart=${pkgs.sonarr}/bin/Sonarr -nobrowser -data=/var/lib/sonarr
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/sonarr
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  radarrUnit = ''
+    [Unit]
+    Description=theau-vps Radarr
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=radarr
+    Group=radarr
+    WorkingDirectory=/var/lib/radarr
+    Environment=HOME=/var/lib/radarr
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o radarr -g radarr -m 0750 /var/lib/radarr
+    ExecStart=${pkgs.radarr}/bin/Radarr -nobrowser -data=/var/lib/radarr
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/radarr
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
   firewallUnit = ''
     [Unit]
     Description=theau-vps firewall
@@ -980,6 +1078,14 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${seerrUnit}
   EOF
 
+  cat > "$out/share/theau-vps/systemd/theau-vps-sonarr.service" <<'EOF'
+  ${sonarrUnit}
+  EOF
+
+  cat > "$out/share/theau-vps/systemd/theau-vps-radarr.service" <<'EOF'
+  ${radarrUnit}
+  EOF
+
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'
   ${certbotRenewService}
   EOF
@@ -1020,5 +1126,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ln -s ${pkgs.lldap-cli} "$out/share/theau-vps/lldap-cli-package"
   ln -s ${pkgs.prowlarr} "$out/share/theau-vps/prowlarr-package"
   ln -s ${pkgs.seerr} "$out/share/theau-vps/seerr-package"
+  ln -s ${pkgs.sonarr} "$out/share/theau-vps/sonarr-package"
+  ln -s ${pkgs.radarr} "$out/share/theau-vps/radarr-package"
   ln -s ${pkgs.openssl} "$out/share/theau-vps/openssl-package"
 ''

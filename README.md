@@ -26,6 +26,8 @@ The target architecture is documented in:
 - [`docs/implementation/current-vps-bundle.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/current-vps-bundle.md)
 - [`docs/implementation/future-personal-ssh-access-platform.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/future-personal-ssh-access-platform.md)
 - [`docs/implementation/jellyfin-kot-seedbox.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/jellyfin-kot-seedbox.md)
+- [`docs/implementation/sonarr.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/sonarr.md)
+- [`docs/implementation/radarr.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/radarr.md)
 - [`docs/implementation/storage-kot-nas.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/storage-kot-nas.md)
 - [`docs/implementation/vps-headscale.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/vps-headscale.md)
 - [`docs/implementation/vps-caddy.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/vps-caddy.md)
@@ -94,10 +96,13 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - LLDAP on `127.0.0.1:17170` with LDAP on `127.0.0.1:3890`
 - Authelia on `127.0.0.1:9091`
 - Prowlarr on `127.0.0.1:9696`
+- Sonarr on `127.0.0.1:8989` (TV shows, managed by Prowlarr/qBittorrent)
+- Radarr on `127.0.0.1:7878` (movies, managed by Prowlarr/qBittorrent)
 - Seerr on `127.0.0.1:5055`
 - public vhosts for `authelia.theau.net`, `coolify.theau.net`,
   `file.theau.net`, `jellyfin.theau.net`, `prowlarr.theau.net`,
-  `qbit.theau.net`, `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
+  `qbit.theau.net`, `radarr.theau.net`, `seer.theau.net`,
+  `sonarr.theau.net`, `users.theau.net`, and `wg.theau.net`
 - Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard,
   `paas-admins` for Coolify, `admins`/`media-admins`/`media-users` for
   qBittorrent/Jellyfin/Seerr/FileBrowser, `admins` for administration)

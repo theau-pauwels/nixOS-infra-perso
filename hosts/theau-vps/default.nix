@@ -18,6 +18,8 @@ in
     prowlarr = "prowlarr.theau.net";
     qbit = "qbit.theau.net";
     seer = "seer.theau.net";
+    sonarr = "sonarr.theau.net";
+    radarr = "radarr.theau.net";
     users = "users.theau.net";
     wg = "wg.theau.net";
     certName = "theau-net-services";
