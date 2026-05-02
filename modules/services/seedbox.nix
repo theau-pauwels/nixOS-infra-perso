@@ -168,7 +168,7 @@ in
           };
           volumes = [
             "${cfg.dataRoot}/qbittorrent/config:/config"
-            "${cfg.dataRoot}/downloads:/downloads"
+            "/srv/nas:/srv/nas"
           ];
           extraOptions = [
             "--network=container:${gluetunContainerName}"
@@ -194,12 +194,12 @@ in
                 'WebUI\AuthSubnetWhitelistEnabled=true' \
                 'WebUI\HostHeaderValidation=false' \
                 'WebUI\ReverseProxySupportEnabled=true' \
-                'Session\DefaultSavePath=/downloads' \
+                'Session\DefaultSavePath=/srv/nas/downloads' \
                 > "$qbit_config"
               ${pkgs.coreutils}/bin/chown seedbox:seedbox "$qbit_config"
               ${pkgs.coreutils}/bin/chmod 0640 "$qbit_config"
             fi
-            ${pkgs.gnused}/bin/sed -i 's|Session\\\\DefaultSavePath=.*|Session\\\\DefaultSavePath=/downloads|' "$qbit_config"
+            ${pkgs.gnused}/bin/sed -i 's|Session\\\\DefaultSavePath=.*|Session\\\\DefaultSavePath=/srv/nas/downloads|' "$qbit_config"
           '';
         };
 
