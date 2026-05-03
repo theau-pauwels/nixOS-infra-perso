@@ -362,7 +362,7 @@ password: ${password}
 EOF
 
 cat > "$LLDAP_CONFIG_FILE" <<EOF
-ldap_host = "127.0.0.1"
+ldap_host = "0.0.0.0"
 ldap_port = 3890
 http_host = "127.0.0.1"
 http_port = 17170

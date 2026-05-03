@@ -5,6 +5,36 @@
   ...
 }:
 
+let
+  jellyfinLdapPlugin = pkgs.fetchzip {
+    name = "jellyfin-ldap-auth-plugin";
+    url = "https://github.com/jellyfin/jellyfin-plugin-ldapauth/releases/download/v22/ldap-authentication_22.0.0.0.zip";
+    hash = "sha256-m2oD9woEuoSRiV9OeifAxZN7XQULMKS0Yq4TF+LjjpI=";
+    stripRoot = false;
+  };
+
+  jellyfinLdapConfigXml = pkgs.writeText "LDAP-Auth.xml" ''
+    <?xml version="1.0" encoding="utf-8"?>
+    <PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+      <LdapServer>10.8.0.1</LdapServer>
+      <LdapPort>3890</LdapPort>
+      <LdapBaseDn>dc=theau,dc=net</LdapBaseDn>
+      <LdapSearchFilter>(uid={0})</LdapSearchFilter>
+      <LdapAdminFilter>(memberOf=cn=admins,ou=groups,dc=theau,dc=net)</LdapAdminFilter>
+      <LdapBindUser>uid=theau,ou=people,dc=theau,dc=net</LdapBindUser>
+      <LdapBindPassword>CHANGE_ME_VIA_WEBUI</LdapBindPassword>
+      <LdapSearchAttributes>uid, cn, mail, displayName</LdapSearchAttributes>
+      <LdapUidAttribute>uid</LdapUidAttribute>
+      <LdapUsernameAttribute>cn</LdapUsernameAttribute>
+      <CreateUsersFromLdap>true</CreateUsersFromLdap>
+      <UseSsl>false</UseSsl>
+      <UseStartTls>false</UseStartTls>
+      <SkipSslVerify>false</SkipSslVerify>
+      <AllowPassChange>false</AllowPassChange>
+      <EnableAllFolders>false</EnableAllFolders>
+    </PluginConfiguration>
+  '';
+in
 {
   imports = [
     (modulesPath + "/profiles/qemu-guest.nix")
@@ -86,6 +116,29 @@
     configDir = "/srv/jellyfin/config";
     cacheDir = "/srv/jellyfin/cache";
     logDir = "/srv/jellyfin/log";
+  };
+
+  systemd.services.jellyfin-ldap-plugin = {
+    description = "Install Jellyfin LDAP Auth plugin";
+    before = [ "jellyfin.service" ];
+    requiredBy = [ "jellyfin.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "jellyfin";
+      Group = "jellyfin";
+      RemainAfterExit = true;
+    };
+    script = ''
+      PLUGIN_DIR=/srv/jellyfin/data/plugins/LDAP-Auth
+      CONFIG_DIR=/srv/jellyfin/data/plugins/configurations
+      if [ ! -f "$PLUGIN_DIR/LDAP-Auth.dll" ]; then
+        mkdir -p "$PLUGIN_DIR" "$CONFIG_DIR"
+        cp -r ${jellyfinLdapPlugin}/* "$PLUGIN_DIR/"
+        cp ${jellyfinLdapConfigXml} "$CONFIG_DIR/LDAP-Auth.xml"
+        chmod 644 "$CONFIG_DIR/LDAP-Auth.xml"
+        chmod -R u+w "$PLUGIN_DIR"
+      fi
+    '';
   };
 
   systemd.services.jellyfin.preStart = ''

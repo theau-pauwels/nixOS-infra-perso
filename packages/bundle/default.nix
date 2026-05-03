@@ -79,6 +79,7 @@ let
         ip6 nexthdr icmpv6 accept
         tcp dport { ${tcpPorts} } accept
         udp dport { ${udpPorts} } accept
+        ip saddr ${hostSpec.wireguard.subnet} tcp dport 3890 accept
       }
 
       chain forward {
@@ -225,13 +226,6 @@ let
       proxy_set_header Remote-Groups $groups;
       proxy_set_header Remote-Name $name;
       proxy_set_header Remote-Email $email;
-      ${proxyHeaders}
-      proxy_pass ${upstream};
-    }
-  '';
-
-  jellyfinPublicLocation = matcher: upstream: ''
-    location ${matcher} {
       ${proxyHeaders}
       proxy_pass ${upstream};
     }
@@ -597,23 +591,8 @@ let
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
       ${autheliaAuthLocation}
-      ${jellyfinPublicLocation "= /System/Info/Public" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /system/info/public" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /System/Endpoint" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /system/endpoint" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /Users/Public" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /users/public" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /Branding/Configuration" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /branding/configuration" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /Branding/Css" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /branding/css" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /QuickConnect/Enabled" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /quickconnect/enabled" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /web/manifest.json" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "= /Startup/Configuration" "http://10.8.0.21:8096"}
-      ${jellyfinPublicLocation "^~ /Localization/" "http://10.8.0.21:8096"}
 
-      location / {
+      location /web/ {
         auth_request /internal/authelia/authz;
         auth_request_set $redirection_url $upstream_http_location;
         error_page 401 =302 $redirection_url;
@@ -625,6 +604,15 @@ let
         proxy_set_header Remote-Groups $groups;
         proxy_set_header Remote-Name $name;
         proxy_set_header Remote-Email $email;
+        ${proxyHeaders}
+        proxy_pass http://10.8.0.21:8096;
+      }
+
+      location = / {
+        return 302 /web/;
+      }
+
+      location / {
         proxy_buffering off;
         proxy_request_buffering off;
         proxy_read_timeout 3600s;
