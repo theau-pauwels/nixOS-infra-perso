@@ -151,6 +151,24 @@ host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
 print(host.get("serviceDomains", {}).get("users", "users.theau.net"))
 PY
 )"
+GIT_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("git", "git.theau.net"))
+PY
+)"
+WIKI_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("wiki", "wiki.theau.net"))
+PY
+)"
+MONITORING_DOMAIN="$(python3 - <<'PY'
+import json, os
+host = json.load(open(os.environ["HOST_SPEC"], "r", encoding="utf-8"))
+print(host.get("serviceDomains", {}).get("monitoring", "monitoring.theau.net"))
+PY
+)"
 
 install -d -m 0755 /etc/theau-vps /etc/theau-vps/nginx /etc/theau-vps/nginx/sites-enabled /etc/wireguard
 install -d -m 0755 /var/lib/theau-vps /var/lib/theau-vps/acme-challenge /var/lib/wgdashboard /var/lib/wgdashboard/db /var/lib/wgdashboard/log /var/lib/wgdashboard/plugins
@@ -476,75 +494,97 @@ access_control:
     - domain: ${USERS_DOMAIN}
       policy: two_factor
       subject:
+        - group:users-admin
         - group:admins
     - domain: ${COOLIFY_DOMAIN}
       policy: two_factor
       subject:
+        - group:coolify-admin
         - group:admins
-        - group:paas-admins
     - domain: ${WG_DOMAIN}
       policy: two_factor
       subject:
+        - group:wg
         - group:wg-admin
+        - group:admins
     - domain: ${PROWLARR_DOMAIN}
       policy: two_factor
       subject:
+        - group:prowlarr-admin
         - group:admins
-        - group:media-admins
     - domain: ${SONARR_DOMAIN}
       policy: one_factor
       subject:
+        - group:sonarr
+        - group:sonarr-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${RADARR_DOMAIN}
       policy: one_factor
       subject:
+        - group:radarr
+        - group:radarr-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${LIDARR_DOMAIN}
       policy: one_factor
       subject:
+        - group:lidarr
+        - group:lidarr-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${NAVIDROME_DOMAIN}
       policy: one_factor
       subject:
+        - group:navidrome
+        - group:navidrome-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${MUSICSEERR_DOMAIN}
       policy: one_factor
       subject:
+        - group:musicseerr
+        - group:musicseerr-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${QBIT_DOMAIN}
       policy: one_factor
       subject:
+        - group:qbit
+        - group:qbit-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${JELLYFIN_DOMAIN}
       policy: one_factor
       subject:
+        - group:jellyfin
+        - group:jellyfin-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${FILE_DOMAIN}
       policy: one_factor
       subject:
+        - group:file
+        - group:file-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
     - domain: ${SEER_DOMAIN}
       policy: one_factor
       subject:
+        - group:seer
+        - group:seer-admin
         - group:admins
-        - group:media-admins
-        - group:media-users
+    - domain: ${GIT_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:git
+        - group:git-admin
+        - group:admins
+    - domain: ${WIKI_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:wiki
+        - group:wiki-admin
+        - group:admins
+    - domain: ${MONITORING_DOMAIN}
+      policy: one_factor
+      subject:
+        - group:monitoring
+        - group:monitoring-admin
+        - group:infra-admins
+        - group:admins
 session:
   cookies:
     - domain: theau.net
@@ -728,11 +768,11 @@ lldap_cli=(env "LLDAP_PASSWORD=$lldap_password" "$BUNDLE_ROOT/share/theau-vps/ll
 "${lldap_cli[@]}" group list >/dev/null
 "${lldap_cli[@]}" user update set theau mail theau.pauwels@gmail.com >/dev/null
 
-for group in admins infra-admins media-users media-admins git-users git-admins paas-users paas-admins wiki-users monitoring-users service-accounts wg-admin; do
+for group in admins infra-admins authelia authelia-admin coolify coolify-admin file file-admin git git-admin jellyfin jellyfin-admin lidarr lidarr-admin monitoring monitoring-admin musicseerr musicseerr-admin navidrome navidrome-admin prowlarr prowlarr-admin qbit qbit-admin radarr radarr-admin seer seer-admin service-accounts sonarr sonarr-admin users users-admin wg wg-admin wiki wiki-admin; do
   "${lldap_cli[@]}" group add "$group" >/dev/null 2>&1 || true
 done
 
-for group in admins infra-admins paas-admins git-admins media-admins monitoring-users wiki-users wg-admin; do
+for group in admins infra-admins authelia-admin coolify-admin file-admin git-admin jellyfin-admin lidarr-admin monitoring-admin musicseerr-admin navidrome-admin prowlarr-admin qbit-admin radarr-admin seer-admin sonarr-admin users-admin wg-admin wiki-admin; do
   "${lldap_cli[@]}" user group add theau "$group" >/dev/null 2>&1 || true
 done
 

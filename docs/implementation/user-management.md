@@ -19,48 +19,58 @@ through Authelia before reaching them.
 
 ## Groups
 
-Initial groups:
+Each service has two groups: `{service}` for users who can USE the service,
+`{service}-admin` for users who can MANAGE it. The `admins` group (containing
+user `theau`) has access to everything.
 
 ```text
-admins
-infra-admins
-media-users
-media-admins
-git-users
-git-admins
-paas-users
-paas-admins
-wiki-users
-monitoring-users
-service-accounts
-wg-admin
-```
+admins           # super-admin (theau)
+infra-admins     # infrastructure admins
+service-accounts # machine accounts
 
-`wg-admin` is intentionally separate from `admins`: WGDashboard access is
-granted by membership in `wg-admin`.
+# Per-service groups (17 services × 2 groups each)
+authelia         authelia-admin
+coolify          coolify-admin
+file             file-admin
+git              git-admin
+jellyfin         jellyfin-admin
+lidarr           lidarr-admin
+monitoring       monitoring-admin
+musicseerr       musicseerr-admin
+navidrome        navidrome-admin
+prowlarr         prowlarr-admin
+qbit             qbit-admin
+radarr           radarr-admin
+seer             seer-admin
+sonarr           sonarr-admin
+users            users-admin
+wg               wg-admin
+wiki             wiki-admin
+```
 
 ## Access Policies
 
-Authelia policies use LLDAP groups:
+Authelia policies use the per-service groups:
 
-| Service | Groups |
-| --- | --- |
-| LLDAP UI | `admins` |
-| WGDashboard | `wg-admin` |
-| Coolify admin UI | `paas-admins`, `admins` |
-| Forgejo web UI | `git-users`, `git-admins`, `admins` |
-| Prowlarr admin UI | `media-admins`, `admins` |
-| qBittorrent WebUI | `media-admins`, `admins` |
-| Jellyfin | `media-users`, `media-admins`, `admins` |
-| Jellyseerr | `media-users`, `media-admins`, `admins` |
-| Wiki offline | `wiki-users`, `admins` |
-| Monitoring | `monitoring-users`, `infra-admins`, `admins` |
-
-Privileged routes should use Authelia `two_factor` where the application flow
-supports it cleanly. The current `qbit.theau.net` route uses a one-factor LLDAP
-group gate because the qBittorrent WebUI polls `/api/v2/*` from JavaScript and
-otherwise loops on Authelia redirects. Public raw service ports remain closed or
-bound to localhost.
+| Service | Policy | Groups |
+| --- | --- | --- |
+| Authelia portal | one_factor | (public) |
+| LLDAP UI | two_factor | `users-admin`, `admins` |
+| WGDashboard | two_factor | `wg`, `wg-admin`, `admins` |
+| Coolify | two_factor | `coolify-admin`, `admins` |
+| Prowlarr | two_factor | `prowlarr-admin`, `admins` |
+| Sonarr | one_factor | `sonarr`, `sonarr-admin`, `admins` |
+| Radarr | one_factor | `radarr`, `radarr-admin`, `admins` |
+| Lidarr | one_factor | `lidarr`, `lidarr-admin`, `admins` |
+| Navidrome | one_factor | `navidrome`, `navidrome-admin`, `admins` |
+| MusicSeerr | one_factor | `musicseerr`, `musicseerr-admin`, `admins` |
+| qBittorrent | one_factor | `qbit`, `qbit-admin`, `admins` |
+| Jellyfin | one_factor | `jellyfin`, `jellyfin-admin`, `admins` |
+| Seerr | one_factor | `seer`, `seer-admin`, `admins` |
+| FileBrowser | one_factor | `file`, `file-admin`, `admins` |
+| Forgejo | one_factor | `git`, `git-admin`, `admins` |
+| Wiki | one_factor | `wiki`, `wiki-admin`, `admins` |
+| Monitoring | one_factor | `monitoring`, `monitoring-admin`, `infra-admins`, `admins` |
 
 ## Application Accounts
 
@@ -80,15 +90,21 @@ identity provider.
 
 The current Ubuntu VPS bundle runs:
 
-- LLDAP on `127.0.0.1:17170` and LDAP on `127.0.0.1:3890`
+- LLDAP on `0.0.0.0:17170` (HTTP) and `0.0.0.0:3890` (LDAP, reachable from WireGuard peers via nftables restriction)
 - Authelia on `127.0.0.1:9091`
-- `users.theau.net` -> LLDAP UI, route-gated by Authelia `admins`; LLDAP still handles its own UI login
-- `wg.theau.net` -> WGDashboard, protected by Authelia `wg-admin`
-- `coolify.theau.net` -> Coolify, edge-protected by Authelia `paas-admins` or `admins`
-- `jellyfin.theau.net` -> Jellyfin, edge-protected by Authelia `media-users`, `media-admins`, or `admins`
-- `prowlarr.theau.net` -> Prowlarr, edge-protected by Authelia `media-admins` or `admins`
-- `qbit.theau.net` -> qBittorrent WebUI, edge-protected by Authelia `media-admins` or `admins`
-- `seer.theau.net` -> Seerr, edge-protected by Authelia `media-users`, `media-admins`, or `admins`
+- `users.theau.net` -> LLDAP UI, route-gated by Authelia `users-admin` or `admins`; LLDAP still handles its own UI login
+- `wg.theau.net` -> WGDashboard, protected by Authelia `wg`, `wg-admin`, or `admins`
+- `coolify.theau.net` -> Coolify, edge-protected by Authelia `coolify-admin` or `admins`
+- `jellyfin.theau.net` -> Jellyfin, edge-protected by Authelia `jellyfin`, `jellyfin-admin`, or `admins`
+- `prowlarr.theau.net` -> Prowlarr, edge-protected by Authelia `prowlarr-admin` or `admins`
+- `sonarr.theau.net` -> Sonarr, edge-protected by Authelia `sonarr`, `sonarr-admin`, or `admins`
+- `radarr.theau.net` -> Radarr, edge-protected by Authelia `radarr`, `radarr-admin`, or `admins`
+- `lidarr.theau.net` -> Lidarr, edge-protected by Authelia `lidarr`, `lidarr-admin`, or `admins`
+- `music.theau.net` -> Navidrome, edge-protected by Authelia `navidrome`, `navidrome-admin`, or `admins`
+- `musicseerr.theau.net` -> MusicSeerr, edge-protected by Authelia `musicseerr`, `musicseerr-admin`, or `admins`
+- `qbit.theau.net` -> qBittorrent WebUI, edge-protected by Authelia `qbit`, `qbit-admin`, or `admins`
+- `seer.theau.net` -> Seerr, edge-protected by Authelia `seer`, `seer-admin`, or `admins`
+- `file.theau.net` -> FileBrowser, edge-protected by Authelia `file`, `file-admin`, or `admins`
 
 Bootstrap credentials are generated on the VPS:
 

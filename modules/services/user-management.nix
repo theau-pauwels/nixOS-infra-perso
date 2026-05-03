@@ -25,49 +25,114 @@ let
   defaultAccessPolicies = {
     ${cfg.lldap.domain} = {
       policy = "two_factor";
-      groups = [ "admins" ];
+      groups = [
+        "users-admin"
+        "admins"
+      ];
     };
     ${cfg.services.coolifyDomain} = {
       policy = "two_factor";
       groups = [
-        "paas-admins"
+        "coolify-admin"
         "admins"
       ];
     };
     ${cfg.services.wgDashboardDomain} = {
       policy = "two_factor";
-      groups = [ "wg-admin" ];
+      groups = [
+        "wg"
+        "wg-admin"
+        "admins"
+      ];
     };
     ${cfg.services.gitDomain} = {
       groups = [
-        "git-users"
-        "git-admins"
+        "git"
+        "git-admin"
         "admins"
       ];
     };
     ${cfg.services.prowlarrDomain} = {
       policy = "two_factor";
       groups = [
-        "media-admins"
+        "prowlarr-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.sonarrDomain} = {
+      groups = [
+        "sonarr"
+        "sonarr-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.radarrDomain} = {
+      groups = [
+        "radarr"
+        "radarr-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.lidarrDomain} = {
+      groups = [
+        "lidarr"
+        "lidarr-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.navidromeDomain} = {
+      groups = [
+        "navidrome"
+        "navidrome-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.musicseerrDomain} = {
+      groups = [
+        "musicseerr"
+        "musicseerr-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.qbitDomain} = {
+      groups = [
+        "qbit"
+        "qbit-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.jellyfinDomain} = {
+      groups = [
+        "jellyfin"
+        "jellyfin-admin"
         "admins"
       ];
     };
     ${cfg.services.jellyseerrDomain} = {
       groups = [
-        "media-users"
-        "media-admins"
+        "seer"
+        "seer-admin"
+        "admins"
+      ];
+    };
+    ${cfg.services.fileDomain} = {
+      groups = [
+        "file"
+        "file-admin"
         "admins"
       ];
     };
     ${cfg.services.wikiDomain} = {
       groups = [
-        "wiki-users"
+        "wiki"
+        "wiki-admin"
         "admins"
       ];
     };
     ${cfg.services.monitoringDomain} = {
       groups = [
-        "monitoring-users"
+        "monitoring"
+        "monitoring-admin"
         "infra-admins"
         "admins"
       ];
@@ -89,16 +154,41 @@ in
       default = [
         "admins"
         "infra-admins"
-        "media-users"
-        "media-admins"
-        "git-users"
-        "git-admins"
-        "paas-users"
-        "paas-admins"
-        "wiki-users"
-        "monitoring-users"
+        "authelia"
+        "authelia-admin"
+        "coolify"
+        "coolify-admin"
+        "file"
+        "file-admin"
+        "git"
+        "git-admin"
+        "jellyfin"
+        "jellyfin-admin"
+        "lidarr"
+        "lidarr-admin"
+        "monitoring"
+        "monitoring-admin"
+        "musicseerr"
+        "musicseerr-admin"
+        "navidrome"
+        "navidrome-admin"
+        "prowlarr"
+        "prowlarr-admin"
+        "qbit"
+        "qbit-admin"
+        "radarr"
+        "radarr-admin"
+        "seer"
+        "seer-admin"
         "service-accounts"
+        "sonarr"
+        "sonarr-admin"
+        "users"
+        "users-admin"
+        "wg"
         "wg-admin"
+        "wiki"
+        "wiki-admin"
       ];
       description = "Standard LLDAP groups used by Authelia access policies.";
     };
@@ -226,6 +316,54 @@ in
         type = lib.types.str;
         default = "monitoring.theau.net";
         description = "Monitoring dashboard domain.";
+      };
+
+      sonarrDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "sonarr.theau.net";
+        description = "Sonarr domain.";
+      };
+
+      radarrDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "radarr.theau.net";
+        description = "Radarr domain.";
+      };
+
+      lidarrDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "lidarr.theau.net";
+        description = "Lidarr domain.";
+      };
+
+      navidromeDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "music.theau.net";
+        description = "Navidrome domain.";
+      };
+
+      musicseerrDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "musicseerr.theau.net";
+        description = "MusicSeerr domain.";
+      };
+
+      qbitDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "qbit.theau.net";
+        description = "qBittorrent domain.";
+      };
+
+      jellyfinDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "jellyfin.theau.net";
+        description = "Jellyfin domain.";
+      };
+
+      fileDomain = lib.mkOption {
+        type = lib.types.str;
+        default = "file.theau.net";
+        description = "FileBrowser domain.";
       };
     };
 
