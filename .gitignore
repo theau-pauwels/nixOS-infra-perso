@@ -14,3 +14,4 @@ local-secrets/
 __pycache__/
 *.pyc
 result
+.venv/
