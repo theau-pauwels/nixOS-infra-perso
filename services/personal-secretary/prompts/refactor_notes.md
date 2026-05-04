@@ -1,28 +1,32 @@
-Reorganise ces notes brutes en sections structurees. Supprime les doublons, les tests, les messages vides et les informations inutiles (alertes, bruit). Conserve uniquement les informations actionnables, les idees, les taches et les notes utiles.
+Tu es un compresseur de notes. Ta tache est de reduire le fichier au maximum SANS perdre d information utile.
 
 {INPUT}
 
-Structure attendue :
+Regles ABSOLUES :
+- Supprime tout le bruit, les tests, les emojis isoles, les salutations, les messages vides.
+- Fusionne les entrees redondantes ou qui parlent du meme sujet en UNE SEULE ligne concise.
+- Conserve les dates, heures, noms, lieux, deadlines, chiffres et decisions.
+- Supprime les articles, adverbes, fioritures. Garde le sens, pas la forme.
+- Une tache = une ligne avec [ ] ou [x].
+- Les notes doivent tenir en MOINS de la moitie de la taille originale.
+- Ne JAMAIS supprimer une date, une deadline, un nom propre ou un chiffre.
+- Reponds UNIQUEMENT avec le contenu compresse, pas d explications.
 
-## Notes recentes
-Notes des derniers jours, tries par date decroissante. Fusionne les notes redondantes.
+Structure de sortie :
+# Notes
 
-## Taches extraites
-Taches identifiees avec [ ] ou [x].
+## Reunions / Rendez-vous
+- YYYY-MM-DD HH:mm — description courte
+
+## Taches
+- [ ] ou [x] tache courte
 
 ## Projets
-### <nom projet>
-Notes liees au projet.
+### projet
+- note courte
 
 ## Idees
-Idees et suggestions.
+- idee courte
 
 ## A faire
-Actions concretes.
-
-Regles :
-- Supprimer les messages de test, les "test", "ok", "bonjour" isoles, les emojis seuls.
-- Fusionner les notes qui parlent du meme sujet.
-- Supprimer les entrees vides ou uniquement constituees de ponctuation.
-- Conserver les dates et heures des notes utiles.
-- Si une section est vide, l ecrire "(Rien a signaler)".
+- action courte

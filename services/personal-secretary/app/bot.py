@@ -405,6 +405,82 @@ async def cmd_reminder(ctx, text: str, when: str = ""):
     _save_reminders(reminders)
     await ctx.followup.send(f"\u23F0 Reminder set: **{text}** at {reminder_time}", ephemeral=True)
 
+
+
+def _load_proposal():
+    p = config.STATE_DIR / "refactor_proposal.json"
+    if p.exists():
+        try:
+            return json.loads(p.read_text())
+        except:
+            pass
+    return {"original": "", "proposal": "", "reviews": []}
+
+def _save_proposal(prop):
+    config.STATE_DIR.mkdir(parents=True, exist_ok=True)
+    (config.STATE_DIR / "refactor_proposal.json").write_text(json.dumps(prop, indent=2, ensure_ascii=False))
+
+def _build_refactor_proposal(comment=""):
+    inbox = (config.JOURNAL_DIR / "inbox.md").read_text() if (config.JOURNAL_DIR / "inbox.md").exists() else ""
+    if not inbox.strip():
+        return None, "Inbox is empty."
+
+    from .llm import get_provider
+    provider = get_provider()
+    prompt_file = config.PROMPTS_DIR / "refactor_notes.md"
+    system = (config.PROMPTS_DIR / "system.md").read_text() if (config.PROMPTS_DIR / "system.md").exists() else ""
+    task_prompt = prompt_file.read_text().replace("{INPUT}", inbox) if prompt_file.exists() else inbox
+
+    if comment:
+        task_prompt += "\n\nIMPORTANT - Instruction de revision OBLIGATOIRE a appliquer: " + comment + " Applique cette instruction sans discuter. Si on te demande de supprimer, SUPPRIME."
+
+    resp = provider.generate(prompt=task_prompt, system_prompt=system, task="summary")
+    prop = _load_proposal()
+    prop["original"] = inbox
+    prop["proposal"] = resp.content
+    prop["reviews"].append(comment or "(initial proposal)")
+    _save_proposal(prop)
+    return resp.content, None
+@bot.slash_command(name="refactor", description="Compress inbox to save tokens (no info loss)")
+async def cmd_refactor(ctx, action: str = "", comment: str = ""):
+    if not is_authorized(ctx):
+        await ctx.respond("Unauthorized.", ephemeral=True)
+        return
+    await ctx.defer(ephemeral=True)
+
+    if action == "accept":
+        prop = _load_proposal()
+        if not prop.get("proposal"):
+            await ctx.followup.send("No proposal to accept. Run /refactor first.", ephemeral=True)
+            return
+        (config.JOURNAL_DIR / "inbox.md").write_text(prop["proposal"])
+        (config.JOURNAL_DIR / "sources" / "discord-notes.md").write_text(prop["proposal"])
+        journal_commit(config.JOURNAL_DIR, "refactor: accept proposal")
+        _save_proposal({"original": "", "proposal": "", "reviews": []})
+        await ctx.followup.send("Proposal accepted. Inbox updated.", ephemeral=True)
+        return
+
+    if action == "review":
+        if not comment:
+            await ctx.followup.send("Use: /refactor review <your comment>", ephemeral=True)
+            return
+        proposal, err = _build_refactor_proposal(comment)
+        if err:
+            await ctx.followup.send(err, ephemeral=True)
+            return
+        await post_summary("admin", f"**Refactor proposal (reviewed)**\n{proposal}")
+        await ctx.followup.send("Revised proposal posted in admin channel.", ephemeral=True)
+        return
+
+    # Default: generate new proposal
+    proposal, err = _build_refactor_proposal()
+    if err:
+        await ctx.followup.send(err, ephemeral=True)
+        return
+    msg = "**Refactor proposal**\n" + proposal + "\n\nUse `/refactor review <comment>` to revise or `/refactor accept` to apply."
+    await post_summary("admin", msg)
+    await ctx.followup.send("Proposal posted in admin channel.", ephemeral=True)
+
 @bot.slash_command(name="project-create", description="Create a project")
 async def cmd_project_create(ctx, name: str, temporary: bool = True, deadline: str = ""):
     if not is_authorized(ctx):
