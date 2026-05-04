@@ -1,13 +1,14 @@
-Reorganise ces notes brutes en sections structurees. Conserve TOUT le contenu.
+Reorganise ces notes brutes en sections structurees. Supprime les doublons, les tests, les messages vides et les informations inutiles (alertes, bruit). Conserve uniquement les informations actionnables, les idees, les taches et les notes utiles.
 
 {INPUT}
 
-Structure attendue:
+Structure attendue :
+
 ## Notes recentes
-Notes des derniers jours, tries par date decroissante.
+Notes des derniers jours, tries par date decroissante. Fusionne les notes redondantes.
 
 ## Taches extraites
-Taches identifiees dans les notes, avec [ ] si pas fait, [x] si fait.
+Taches identifiees avec [ ] ou [x].
 
 ## Projets
 ### <nom projet>
@@ -17,4 +18,11 @@ Notes liees au projet.
 Idees et suggestions.
 
 ## A faire
-Actions concretes extraites des notes.
+Actions concretes.
+
+Regles :
+- Supprimer les messages de test, les "test", "ok", "bonjour" isoles, les emojis seuls.
+- Fusionner les notes qui parlent du meme sujet.
+- Supprimer les entrees vides ou uniquement constituees de ponctuation.
+- Conserver les dates et heures des notes utiles.
+- Si une section est vide, l ecrire "(Rien a signaler)".

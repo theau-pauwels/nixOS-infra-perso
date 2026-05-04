@@ -110,16 +110,19 @@ def journal_note(text: str, source: str = "Discord"):
 async def post_summary(key: str, content: str):
     ch = get_channel(key)
     if ch and content.strip():
+        sections = content.split("\n## ")
+        sections[0] = sections[0].lstrip("# ").strip()
         buf = ""
-        for line in content.split("\n"):
-            if len(buf) + len(line) + 1 > 1900:
+        for i, sec in enumerate(sections):
+            prefix = "## " if i > 0 else ""
+            part = prefix + sec
+            if len(buf) + len(part) + 1 > 1900 and buf:
                 await ch.send(buf)
-                buf = line
+                buf = part
             else:
-                buf = buf + "\n" + line if buf else line
+                buf = buf + "\n" + part if buf else part
         if buf:
             await ch.send(buf)
-            await ch.send(content[i:i+1900])
 
 
 # ─── Self-waking scheduler ────────────────────────────────────────────────────
@@ -212,11 +215,6 @@ async def cmd_note(ctx, text: str):
         await ctx.respond("Unauthorized.", ephemeral=True)
         return
     journal_note(text, source=f"Discord/{ctx.author.name}")
-    try:
-        from .summaries import refactor_notes
-        refactor_notes()
-    except Exception:
-        pass
     ch = get_channel("notes")
     if ch:
         await ch.send(f"📝 **{ctx.author.name}**: {text}")
@@ -594,11 +592,6 @@ async def on_message(message: discord.Message):
     if notes_ch_id and str(message.channel.id) == notes_ch_id:
         if not message.content.startswith("/"):
             journal_note(message.content, source=f"Discord/{message.author.name}")
-            try:
-                from .summaries import refactor_notes
-                refactor_notes()
-            except Exception:
-                pass
     await bot.process_commands(message)
 
 @bot.event

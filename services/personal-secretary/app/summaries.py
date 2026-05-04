@@ -101,19 +101,23 @@ def _llm_summarize(raw: str, task: str) -> str:
 
 
 
+_last_refactor = None
+
 def refactor_notes():
-    """Reorganize inbox.md into structured format using LLM."""
+    """Reorganize inbox.md into structured format using LLM (debounced: max 1 per 5 min)."""
+    global _last_refactor
+    now = datetime.now()
+    if _last_refactor and (now - _last_refactor).total_seconds() < 300:
+        return None
+    _last_refactor = now
+
     from . import config
     inbox_path = config.JOURNAL_DIR / "inbox.md"
     notes_path = config.JOURNAL_DIR / "sources" / "discord-notes.md"
 
     inbox_content = inbox_path.read_text() if inbox_path.exists() else ""
     notes_content = notes_path.read_text() if notes_path.exists() else ""
-    combined = f"Inbox:
-{inbox_content}
-
-Archive:
-{notes_content}"
+    combined = f"Inbox:\n{inbox_content}\n\nArchive:\n{notes_content}"
 
     try:
         ai = _llm_summarize(combined, "refactor_notes")
@@ -121,9 +125,7 @@ Archive:
         ai = combined
 
     today = datetime.now().strftime("%Y-%m-%d")
-    header = f"# Notes - refactored {today}
-
-"
+    header = f"# Notes - refactored {today}\\n\\n"
     inbox_path.write_text(header + ai)
     notes_path.write_text(ai)
     return ai
