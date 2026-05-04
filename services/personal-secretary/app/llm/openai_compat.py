@@ -51,7 +51,7 @@ class OpenAICompatProvider(LLMProvider):
         body = json.dumps({
             "model": model,
             "messages": messages,
-            "max_tokens": 4096,
+            "max_tokens": 16384,
             "temperature": 0.3 if task in ("summary", "extract") else 0.7,
         }).encode("utf-8")
 

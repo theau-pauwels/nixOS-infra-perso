@@ -49,3 +49,6 @@ Afficher uniquement les jours contenant au moins un element utile.
 ## 9. Plan d action global
 
 ## 10. A clarifier
+
+
+IMPORTANT: Ne JAMAIS utiliser de tableaux Markdown (| col |). Discord ne les supporte pas. Utiliser des listes a puces.

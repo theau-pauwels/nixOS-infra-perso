@@ -100,6 +100,34 @@ def _llm_summarize(raw: str, task: str) -> str:
         return f"{raw}\n\n(LLM unavailable - raw data shown: {e})"
 
 
+
+def refactor_notes():
+    """Reorganize inbox.md into structured format using LLM."""
+    from . import config
+    inbox_path = config.JOURNAL_DIR / "inbox.md"
+    notes_path = config.JOURNAL_DIR / "sources" / "discord-notes.md"
+
+    inbox_content = inbox_path.read_text() if inbox_path.exists() else ""
+    notes_content = notes_path.read_text() if notes_path.exists() else ""
+    combined = f"Inbox:
+{inbox_content}
+
+Archive:
+{notes_content}"
+
+    try:
+        ai = _llm_summarize(combined, "refactor_notes")
+    except Exception:
+        ai = combined
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    header = f"# Notes - refactored {today}
+
+"
+    inbox_path.write_text(header + ai)
+    notes_path.write_text(ai)
+    return ai
+
 def build_daily_summary():
     from . import config
     today = datetime.now().strftime("%Y-%m-%d")
