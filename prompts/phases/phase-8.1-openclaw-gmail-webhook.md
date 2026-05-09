@@ -1,84 +1,135 @@
-# Phase 8.1 — OpenClaw Gmail Webhook (Documentation & Config)
+# Phase 8.1 — OpenClaw Gmail Webhook (Implementation Pub/Sub + DeepSeek)
 
-> **Parent phase**: Phase 8 — Personal Secretary (remplacé par OpenClaw)
 > **Host cible**: `IONOS-VPS3` (non-NixOS)
 > **Date**: 2026-05-05
 
 ## Contexte
 
 OpenClaw est le bot Discord qui remplace l'ancien `personal-secretary`.
-Il tourne sur `IONOS-VPS3` et intègre plusieurs skills.
+Il tourne sur `IONOS-VPS3`.
 
-Cette phase documente le webhook Gmail → OpenClaw → triage → Discord
-`#📥-inbox`. Aucune implémentation de code n'est faite dans cette phase :
-elle est purement documentaire et préparatoire.
+Cette phase implemente le pipeline Gmail Pub/Sub -> DeepSeek -> Discord
+`#📥-inbox`. Le script `openclaw-gmail-pubsub.py` tourne comme service
+systemd sur IONOS-VPS3, recoit les notifications Pub/Sub en quasi temps
+reel, classifie les mails avec DeepSeek, et notifie uniquement les mails
+importants dans `#📥-inbox`.
 
-Le skill `personal-mail-triage` existe dans OpenClaw et doit être configuré
-pour classifier les mails Gmail (important / UMONS / newsletter / spam) et
-notifier uniquement les mails importants dans `#📥-inbox`.
+## Architecture implementee
 
-## Ce que cette phase couvre
+```
+Gmail API users.watch -> Google Cloud Pub/Sub topic
+                                    │
+                            subscription (pull)
+                                    │
+                     openclaw-gmail-pubsub.py
+                      (systemd service)
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+               Gmail API       DeepSeek API    Discord
+               (fetch msg)     (classify)      (webhook)
+```
 
-1. Documentation de l'architecture Gmail → OpenClaw → Discord.
-2. Documentation des prérequis, variables d'environnement, et flux de secrets.
-3. Templates de configuration systemd et OpenClaw (sans secrets).
-4. Mise à jour de `.gitignore` pour les patterns de secrets Gmail/OpenClaw.
-5. Procédures de test et troubleshooting.
-
-## Ce que cette phase ne couvre PAS
-
-- L'implémentation du code OpenClaw ou du skill `personal-mail-triage`.
-- L'installation effective sur IONOS-VPS3.
-- La création du refresh token Gmail (documenté mais à faire hors repo).
-- Le déploiement (push to infra) — phase séparée.
+- **Pub/Sub pull** uniquement (pas de polling IMAP/Gmail)
+- **DeepSeek** (`deepseek-chat`) pour la classification
+- **Fallback heuristique** si DeepSeek indisponible
+- **Deduplication** par Message-ID + historyId
+- **Renouvellement automatique** de la watch Gmail (tous les 6 jours)
 
 ## Fichiers produits
 
-| Fichier | Rôle |
+| Fichier | Role |
 |---|---|
-| `docs/openclaw-gmail-webhook.md` | Documentation complète |
-| `.gitignore` | Patterns mis à jour pour les secrets OpenClaw/Gmail |
+| `scripts/openclaw-gmail-pubsub.py` | Script principal (stdlib Python) |
+| `docs/openclaw-gmail-webhook.md` | Documentation complete (mise a jour) |
+| `.gitignore` | Patterns pour secrets OpenClaw/Gmail |
 | `prompts/phases/phase-8.1-openclaw-gmail-webhook.md` | Ce fichier |
 
-## Tâches réalisées
+## Details du script
 
-- [x] Inspecter le dépôt existant.
-- [x] Créer `docs/openclaw-gmail-webhook.md` :
-  - [x] Architecture Gmail → gog → OpenClaw → Discord `#📥-inbox`.
-  - [x] Prérequis (IONOS-VPS3, compte Google, Discord, gog).
-  - [x] Variables d'environnement (sans valeurs).
-  - [x] Templates de configuration (`config.yaml`, `personal-mail-triage.yaml`).
-  - [x] Unités systemd (`openclaw.service`, `openclaw-mail-check.service` + `.timer`).
-  - [x] Tests (token Gmail, watch, bout en bout, classification).
-  - [x] Troubleshooting (auth, watch, canal Discord, doublons).
-  - [x] Sécurité des secrets (principes, fichiers ignorés, rotation, backups).
-  - [x] Déploiement non-Nix sur IONOS-VPS3.
-  - [x] Section TODO pour les étapes suivantes.
-- [x] Mettre à jour `.gitignore` (patterns `*.env`, `credentials.json`, `*.gog`, `openclaw.env`).
-- [x] Commit et push des changements.
+`scripts/openclaw-gmail-pubsub.py` (~500 lignes) :
+
+- **TokenManager** : refresh OAuth 2.0 automatique
+- **GmailAPI** : `users.watch`, `users.history.list`, `users.messages.get`
+- **PubSubClient** : pull long-poll (30s timeout), acknowledge
+- **classify_email** : appel DeepSeek avec retry (3 tentatives, backoff exponentiel)
+- **_heuristic_classify** : fallback par mots-cles (francais + anglais)
+- **send_discord_notification** : embed Discord formate (titre, champs, couleur)
+- **State** : persistance de `historyId`, `watchExpiry`, `seenIds`
+- **Signal handling** : SIGINT/SIGTERM -> shutdown gracieux
+
+### Variables d'environnement requises
+
+```
+GMAIL_CLIENT_ID
+GMAIL_CLIENT_SECRET
+GMAIL_REFRESH_TOKEN
+GMAIL_PUBSUB_TOPIC
+GMAIL_PUBSUB_SUBSCRIPTION
+DEEPSEEK_API_KEY
+DISCORD_WEBHOOK_URL
+STATE_DIR (defaut: /var/lib/openclaw/state)
+LOG_LEVEL (defaut: info)
+```
+
+## Systemd
+
+Unite : `openclaw-gmail-pubsub.service`
+
+- User/Group : `openclaw`
+- EnvironmentFile : `/run/secrets/openclaw.env`
+- Restart : `on-failure` avec `RestartSec=10`
+- Sandboxing : `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome=yes`
+
+Unite auxiliaire : `openclaw-secrets.service` (oneshot avant le main)
+pour recreer `/run/secrets/openclaw.env` apres reboot a partir d'une
+source persistante.
+
+## Taches realisees
+
+- [x] Script Python `openclaw-gmail-pubsub.py` (stdlib uniquement)
+  - [x] OAuth 2.0 token management avec refresh automatique
+  - [x] Gmail API : watch, history.list, messages.get
+  - [x] Pub/Sub pull + acknowledge
+  - [x] Classification DeepSeek avec retry (3 tentatives)
+  - [x] Fallback heuristique (mots-cles FR/EN)
+  - [x] Notification Discord (embed colore par categorie)
+  - [x] Deduplication (gmail-seen-ids.json, garde 5000 IDs)
+  - [x] Renouvellement auto de la watch Gmail (6 jours)
+  - [x] Graceful shutdown (SIGINT/SIGTERM)
+- [x] Documentation `docs/openclaw-gmail-webhook.md` :
+  - [x] Architecture Pub/Sub uniquement (pas de polling)
+  - [x] Prerequisites GCP (topic, subscription, IAM)
+  - [x] Variables d'environnement (7 obligatoires + 2 optionnelles)
+  - [x] Systemd service + secrets boot oneshot
+  - [x] Tests (token, watch, Pub/Sub pull, bout en bout, classification, dedup)
+  - [x] Troubleshooting (6 scenarios)
+  - [x] Format de notification Discord (embed structure)
+  - [x] Securite (principes, fichiers ignores, rotation, backups)
+  - [x] Deploiement et arborescence cible
+- [x] Mise a jour de `.gitignore`
+- [x] Phase document cree
 
 ## Validation
 
 ```bash
 git status --short
-git diff --staged
-nix flake check  # le dépôt Nix ne doit pas être cassé
+git diff --cached
+nix flake check  # le depot Nix ne doit pas etre casse
+python3 -c "import py_compile; py_compile.compile('scripts/openclaw-gmail-pubsub.py', doraise=True)"
 ```
 
 ## Prochaines phases
 
-- **Phase 8.2** : Installation effective sur IONOS-VPS3 (binaire, config, systemd, utilisateur).
-- **Phase 8.3** : Configuration OAuth Gmail et premier test de bout en bout.
-- **Phase 8.4** : Calibration du skill `personal-mail-triage` (catégories, seuils, notifications).
-- **Phase 8.5** : Monitoring et alertes (logs, healthcheck Discord, uptime).
+- **Phase 8.2** : Deploiement sur IONOS-VPS3 (scp, user, secrets, systemd, first run)
+- **Phase 8.3** : Test OAuth + Pub/Sub de bout en bout, calibration DeepSeek
+- **Phase 8.4** : Monitoring et alertes (healthcheck, downtime alerts)
+- **Phase 8.5** : Webhook secondaire pour UMONS (si转发 change)
 
 ## Notes
 
-- IONOS-VPS3 n'est **pas** géré par Nix/NixOS. Le déploiement est manuel
-  (scp, ssh, systemctl).
-- Les secrets (`DISCORD_BOT_TOKEN`, `GMAIL_REFRESH_TOKEN`, `OPENAI_API_KEY`,
-  etc.) ne sont **jamais** dans ce dépôt.
-- Le fichier `local-secrets/openclaw.env` peut être utilisé pour stocker les
-  secrets localement, avec `chmod 600`.
-- Le pattern `*.env` ajouté dans `.gitignore` protège tous les fichiers `.env`
-  du dépôt.
+- IONOS-VPS3 n'est **pas** gere par Nix/NixOS. Le deploiement est manuel.
+- Aucun secret dans ce depot (`.env`, `credentials.json`, `*.gog` ignores).
+- Le script n'utilise que la stdlib Python (pas de `pip install` requis).
+- Le Pub/Sub remplace le polling IMAP - latence < 5s au lieu de 60-120s.
+- DeepSeek remplace OpenAI (`deepseek-chat` au lieu de `gpt-4.1-mini`).

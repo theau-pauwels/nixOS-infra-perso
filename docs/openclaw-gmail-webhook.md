@@ -3,168 +3,142 @@
 ## Contexte
 
 OpenClaw est le bot Discord qui remplace l'ancien `personal-secretary` (Phase 8).
-Il tourne sur `IONOS-VPS3` et intègre plusieurs skills, dont le tri de mails
+Il tourne sur `IONOS-VPS3` et integre plusieurs skills, dont le tri de mails
 Gmail.
 
-L'objectif de ce webhook est de détecter rapidement les nouveaux mails Gmail,
-de trier leur importance via le skill `personal-mail-triage`, et de notifier
-uniquement les mails importants dans le canal Discord `#📥-inbox`.
+L'objectif de ce webhook est de detecter rapidement les nouveaux mails Gmail,
+de trier leur importance via DeepSeek, et de notifier uniquement les mails
+importants dans le canal Discord `#📥-inbox`.
 
-Les mails UMONS et facultaires sont transférés automatiquement vers la boîte
-Gmail personnelle. La détection se fait donc sur une seule source : Gmail.
+Les mails UMONS et facultaires sont transferes automatiquement vers la boite
+Gmail personnelle. La detection se fait donc sur une seule source : Gmail.
 
 ## Architecture
 
 ```text
-Gmail (boîte perso)
+Gmail (boite perso)
   │
-  │ push notification (Pub/Sub ou watch Gmail API)
+  │ Gmail API users.watch -> cree/enregistre une watch
   ▼
-gog (Gmail OAuth Gateway)
+Google Cloud Pub/Sub (topic + subscription)
   │
-  │ token OAuth, polling ou watch
+  │ pull (long-poll) — near real-time
   ▼
-OpenClaw (bot Discord sur IONOS-VPS3)
+scripts/openclaw-gmail-pubsub.py (systemd service sur IONOS-VPS3)
   │
-  │ skill: personal-mail-triage
-  │   - classification (important / newsletter / spam / UMONS / admin)
-  │   - extraction des deadlines, relances, actions requises
-  │   - dédoublonnage par Message-ID
+  │ 1. recoit la notification Pub/Sub
+  │ 2. fetch le message complet (Gmail API users.messages.get)
+  │ 3. classifie via DeepSeek API (deepseek-chat)
+  │    categories : important / umons / newsletter / admin / spam
+  │ 4. dedoublonne par Message-ID + historyId
+  │
   ▼
-Discord #📥-inbox
+Discord #📥-inbox (webhook)
   │
-  │ notification formatée :
-  │   - objet
-  │   - expéditeur
-  │   - priorité
-  │   - extrait ou résumé court
-  │   - action suggérée si applicable
+  │ embed Discord formate :
+  │   - objet, expediteur, date
+  │   - categorie + score d'importance
+  │   - resume FR (genere par DeepSeek)
+  │   - action suggeree + deadline si applicable
   ▼
 utilisateur (lecture + action)
 ```
 
-## Prérequis
+### Pourquoi Pub/Sub uniquement (pas de polling)
+
+- Le polling IMAP ou Gmail API `users.messages.list` introduit une latence
+  (intervalle minimum de 60s recommande par Google).
+- Pub/Sub pull livre les notifications en quasi temps reel (< 5s).
+- La watch Gmail expire apres 7 jours ; le script la renouvelle automatiquement
+  au bout de 6 jours.
+- En cas d'echec de Pub/Sub, le script s'arrete et systemd le relance — il
+  rattrape l'historique via `users.history.list`.
+
+## Prerequis
 
 ### Sur IONOS-VPS3
 
-- OpenClaw installé et fonctionnel (binaire ou package Nix).
+- Python 3.10+ (stdlib uniquement — pas de pip requis).
 - Systemd pour la supervision.
-- Connectivité réseau sortante vers :
+- Connectivite reseau sortante vers :
   - `gmail.googleapis.com` (API Gmail)
-  - `discord.com` (API Discord)
-  - `oauth2.googleapis.com` (token OAuth si géré par gog)
+  - `pubsub.googleapis.com` (Google Cloud Pub/Sub)
+  - `oauth2.googleapis.com` (refresh token OAuth)
+  - `api.deepseek.com` (classification IA)
+  - `discord.com` (webhook)
 
-### Compte Google / Gmail
+### Google Cloud Platform
 
-- Gmail API activée dans la console Google Cloud.
-- Identifiants OAuth 2.0 (client ID, client secret) avec le scope
-  `https://www.googleapis.com/auth/gmail.readonly`.
-- Refresh token stocké hors du dépôt (voir Sécurité).
-- L'account Gmail doit avoir la 2FA activée (prérequis pour OAuth ou app password).
+- Projet GCP avec les API suivantes activees :
+  - **Gmail API** : scope `https://www.googleapis.com/auth/gmail.readonly`
+  - **Pub/Sub API** : pour recevoir les notifications
+- Un topic Pub/Sub cree (ex: `projects/<project>/topics/gmail-notifications`).
+- Un abonnement (subscription) **pull** cree sur ce topic
+  (ex: `projects/<project>/subscriptions/gmail-notifications-sub`).
+- Identifiants OAuth 2.0 (client ID, client secret) configures dans la
+  console Google Cloud.
+- Refresh token long-lived stocke hors depot.
+- Le compte Gmail doit avoir la 2FA activee (prerequis OAuth).
+
+### Permissions IAM
+
+Le compte OAuth ou le service account doit avoir les roles :
+- `roles/pubsub.subscriber` sur la subscription
+- L'utilisateur Gmail doit avoir acces a sa propre boite (OAuth scope readonly)
 
 ### Serveur Discord
 
-- Un bot Discord avec les permissions :
-  - View Channels
-  - Send Messages
-  - Read Message History
-  - Use Slash Commands
-- Canal `#📥-inbox` existant (ou créé automatiquement par OpenClaw).
-- ID du serveur (guild ID) connu.
+- Un webhook Discord configure pour le canal `#📥-inbox`.
+- L'URL du webhook est de la forme :
+  `https://discord.com/api/webhooks/<id>/<token>`
 
-### gog (Gmail OAuth Gateway)
+### DeepSeek
 
-Outil CLI utilisé par OpenClaw pour s'authentifier à l'API Gmail via OAuth 2.0.
-Il gère :
-- Le stockage local du refresh token (fichier keyring ou fichier token).
-- Le renouvellement automatique des access tokens.
-- L'accès read-only à la boîte Gmail (list, get, watch).
+- Cle API DeepSeek (`deepseek-chat` model).
+- Endpoint : `https://api.deepseek.com/v1/chat/completions`
 
 ## Variables d'environnement
 
-Toutes les variables ci-dessous doivent être fournies à OpenClaw **sans valeur**
-dans ce dépôt. Les valeurs réelles sont stockées dans un fichier `EnvironmentFile`
-protégé ou dans `/run/secrets/`.
+Toutes les variables ci-dessous sont requises. Les valeurs reelles sont stockees
+dans `/run/secrets/openclaw.env` (tmpfs, root-only).
 
-| Variable | Description | Sensible |
-|---|---|---|
-| `DISCORD_BOT_TOKEN` | Token du bot Discord | Oui |
-| `DISCORD_GUILD_ID` | ID du serveur Discord | Non (semi-public) |
-| `DISCORD_INBOX_CHANNEL_ID` | ID du canal `#📥-inbox` | Non |
-| `GMAIL_CLIENT_ID` | OAuth 2.0 client ID Google | Oui |
-| `GMAIL_CLIENT_SECRET` | OAuth 2.0 client secret Google | Oui |
-| `GMAIL_REFRESH_TOKEN` | OAuth 2.0 refresh token Gmail | Oui |
-| `GOG_KEYRING_PASSWORD` | Mot de passe du keyring gog local | Oui |
-| `OPENAI_API_KEY` | Clé API OpenAI (pour le tri) | Oui |
-| `OPENCLAW_DATA_DIR` | Répertoire de données OpenClaw | Non |
-| `OPENCLAW_LOG_LEVEL` | Niveau de log (info, debug) | Non |
+| Variable | Description |
+|---|---|
+| `GMAIL_CLIENT_ID` | OAuth 2.0 client ID Google |
+| `GMAIL_CLIENT_SECRET` | OAuth 2.0 client secret Google |
+| `GMAIL_REFRESH_TOKEN` | OAuth 2.0 refresh token (long-lived) |
+| `GMAIL_PUBSUB_TOPIC` | Topic Pub/Sub : `projects/<p>/topics/<t>` |
+| `GMAIL_PUBSUB_SUBSCRIPTION` | Subscription Pub/Sub : `projects/<p>/subscriptions/<s>` |
+| `DEEPSEEK_API_KEY` | Cle API DeepSeek |
+| `DISCORD_WEBHOOK_URL` | URL du webhook Discord `#📥-inbox` |
+| `STATE_DIR` | Repertoire state (defaut: `/var/lib/openclaw/state`) |
+| `LOG_LEVEL` | `debug`, `info`, `warning`, `error` (defaut: `info`) |
 
-## Fichiers de configuration
+## Fichiers
 
-### Emplacement
+### Script principal
+
+`scripts/openclaw-gmail-pubsub.py` dans ce depot.
+
+Le script est concu pour fonctionner avec la stdlib Python uniquement
+(aucune dependance pip). Il utilise `urllib` pour toutes les requetes HTTP.
+
+### Fichiers d'etat runtime
 
 ```
-/etc/openclaw/
-├── config.yaml          # Configuration principale OpenClaw
-├── skills/
-│   └── personal-mail-triage.yaml  # Configuration du skill mail
-└── state/
-    └── mail-cursor.json  # Dernier Message-ID traité (état runtime)
+/var/lib/openclaw/state/
+├── gmail-history-id.txt     # Dernier historyId Gmail traite
+├── gmail-watch-expiry.txt   # Timestamp d'expiration de la watch
+└── gmail-seen-ids.json      # Message-IDs deja traites (dedup)
 ```
 
-### Template `config.yaml`
+### Unite systemd
 
-```yaml
-# /etc/openclaw/config.yaml — template sans secrets
-discord:
-  token: "${DISCORD_BOT_TOKEN}"
-  guild_id: "${DISCORD_GUILD_ID}"
-
-gmail:
-  provider: "gog"
-  client_id: "${GMAIL_CLIENT_ID}"
-  client_secret: "${GMAIL_CLIENT_SECRET}"
-  refresh_token: "${GMAIL_REFRESH_TOKEN}"
-  poll_interval_seconds: 60
-  watch_enabled: true
-
-skills:
-  personal-mail-triage:
-    enabled: true
-    inbox_channel_id: "${DISCORD_INBOX_CHANNEL_ID}"
-    model: "gpt-4.1-mini"
-    max_tokens_per_mail: 500
-    categories:
-      important:
-        keywords: ["deadline", "urgence", "action requise", "rapport", "examen"]
-        notify: true
-      umons:
-        from_patterns: ["@umons.ac.be"]
-        notify: true
-      admin:
-        from_patterns: ["noreply@", "notification@"]
-        notify: false
-      newsletter:
-        from_patterns: ["newsletter@", "news@"]
-        notify: false
-      spam:
-        score_threshold: 0.3
-        notify: false
-
-logging:
-  level: "${OPENCLAW_LOG_LEVEL:-info}"
-  dir: "/var/log/openclaw"
-```
-
-## Commandes systemd
-
-### Unité de service
-
-`/etc/systemd/system/openclaw.service` :
+`/etc/systemd/system/openclaw-gmail-pubsub.service` :
 
 ```ini
 [Unit]
-Description=OpenClaw Discord Bot
+Description=OpenClaw Gmail Pub/Sub Notifier
 After=network-online.target
 Wants=network-online.target
 
@@ -173,254 +147,365 @@ Type=simple
 User=openclaw
 Group=openclaw
 EnvironmentFile=/run/secrets/openclaw.env
-ExecStart=/opt/openclaw/bin/openclaw run --config /etc/openclaw/config.yaml
+ExecStart=/opt/openclaw/scripts/openclaw-gmail-pubsub.py
 Restart=on-failure
-RestartSec=5
+RestartSec=10
 WorkingDirectory=/var/lib/openclaw
 StateDirectory=openclaw
 LogsDirectory=openclaw
+
+# Securite
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/openclaw/state
+ReadOnlyPaths=/run/secrets/openclaw.env
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-### Timer de vérification mail (si pas de watch Gmail)
-
-`/etc/systemd/system/openclaw-mail-check.service` :
-
-```ini
-[Unit]
-Description=OpenClaw — Vérification périodique des mails Gmail
-After=network-online.target
-
-[Service]
-Type=oneshot
-User=openclaw
-Group=openclaw
-EnvironmentFile=/run/secrets/openclaw.env
-ExecStart=/opt/openclaw/bin/openclaw mail-check
-```
-
-`/etc/systemd/system/openclaw-mail-check.timer` :
-
-```ini
-[Unit]
-Description=OpenClaw — Timer de vérification des mails (toutes les 2 min)
-
-[Timer]
-OnBootSec=30
-OnUnitActiveSec=120
-AccuracySec=10
-
-[Install]
-WantedBy=timers.target
-```
-
 ### Commandes utiles
 
 ```bash
-# Démarrer / arrêter / statut
-systemctl start openclaw
-systemctl stop openclaw
-systemctl status openclaw
+# Demarrer / arreter / statut
+systemctl start openclaw-gmail-pubsub
+systemctl stop openclaw-gmail-pubsub
+systemctl status openclaw-gmail-pubsub
 
-# Activer le timer de vérification mail
-systemctl enable --now openclaw-mail-check.timer
+# Activer au boot
+systemctl enable openclaw-gmail-pubsub
 
 # Voir les logs
-journalctl -u openclaw -f
-journalctl -u openclaw-mail-check -f
-
-# Vérifier les timers
-systemctl list-timers openclaw-*
+journalctl -u openclaw-gmail-pubsub -f
+journalctl -u openclaw-gmail-pubsub -n 100 --no-pager
 ```
+
+## Classification DeepSeek
+
+### Categories
+
+| Categorie | Notifie ? | Description |
+|---|---|---|
+| `important` | **Oui** | Mails necessitant action/reponse, deadlines, examens, conversations personnelles |
+| `umons` | **Oui** | Mails provenant de `@umons.ac.be` (faculte, cours) |
+| `admin` | Seulement si score > 0.7 | Notifications systeme, alertes login, recus, confirmations |
+| `newsletter` | Non | Listes de diffusion, promotions, news digests |
+| `spam` | Non | Non sollicite, promotionnel, phishing |
+
+### Fallback heuristique
+
+Si DeepSeek est indisponible (erreur reseau, rate limit, ou cle API absente),
+le script utilise une classification basee sur des regles :
+
+- Adresse `@umons.ac.be` -> `umons`
+- Mots-cles dans le sujet (`deadline`, `urgence`, `examen`, `rapport`...) -> `important`
+- Mots-cles newsletter (`newsletter`, `digest`, `promo`...) ou `noreply` -> `newsletter`
+- Mots-cles admin (`notification`, `login`, `facture`...) -> `admin`
+- Defaut -> `important` (score 0.5)
+
+## Format de notification Discord
+
+Les notifications sont envoyees en tant qu'**embed** Discord :
+
+```yaml
+# Exemple d'embed
+title: "🔴 [Examen] Convocation session de juin"
+color: 0xFF4444  # rouge pour important, bleu pour umons
+fields:
+  - De: professeur@umons.ac.be
+  - Categorie: umons (80%)
+  - Resume: Convocation a l'examen de Mathematiques le 15 juin...
+  - Action: Preparer l'examen, verifier l'horaire
+  - Deadline: 15 juin 2026 14:00
+footer: "📅 Mon, 12 May 2026 09:30:00 +0200"
+```
+
+Couleurs par categorie :
+- `important` : rouge (`#FF4444`)
+- `umons` : bleu (`#4499FF`)
+- `admin` : gris (`#888888`)
 
 ## Tests
 
-### Test local du token Gmail
+### Test du token OAuth Gmail
 
 ```bash
-# Via gog : vérifier que l'authentification fonctionne
-gog auth test --provider gmail
-
-# Lister les 5 derniers messages (read-only)
-gog mail list --max-results 5
+# Verifier que l'OAuth fonctionne (refresh token -> access token)
+curl -s -X POST https://oauth2.googleapis.com/token \
+  -d "client_id=$GMAIL_CLIENT_ID" \
+  -d "client_secret=$GMAIL_CLIENT_SECRET" \
+  -d "refresh_token=$GMAIL_REFRESH_TOKEN" \
+  -d "grant_type=refresh_token" | jq -r .access_token
 ```
 
-### Test du webhook Gmail (watch)
+### Test de la watch Gmail
 
 ```bash
-# Vérifier que la watch Gmail est active
-gog mail watch status
+ACCESS_TOKEN=$(curl -s -X POST https://oauth2.googleapis.com/token \
+  -d "client_id=$GMAIL_CLIENT_ID" \
+  -d "client_secret=$GMAIL_CLIENT_SECRET" \
+  -d "refresh_token=$GMAIL_REFRESH_TOKEN" \
+  -d "grant_type=refresh_token" | jq -r .access_token)
 
-# Forcer une vérification manuelle
-/opt/openclaw/bin/openclaw mail-check
+# Creer/enregistrer la watch
+curl -s -X POST "https://gmail.googleapis.com/gmail/v1/users/me/watch" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"topicName\": \"$GMAIL_PUBSUB_TOPIC\", \"labelIds\": [\"INBOX\"]}" | jq .
+```
+
+### Test du Pub/Sub pull
+
+```bash
+ACCESS_TOKEN=$(curl -s -X POST https://oauth2.googleapis.com/token \
+  -d "client_id=$GMAIL_CLIENT_ID" \
+  -d "client_secret=$GMAIL_CLIENT_SECRET" \
+  -d "refresh_token=$GMAIL_REFRESH_TOKEN" \
+  -d "grant_type=refresh_token" | jq -r .access_token)
+
+# Pull des messages
+curl -s -X POST "https://pubsub.googleapis.com/v1/${GMAIL_PUBSUB_SUBSCRIPTION}:pull" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"maxMessages": 5, "returnImmediately": true}' | jq .
 ```
 
 ### Test de bout en bout
 
-1. Envoyer un mail test vers la boîte Gmail personnelle.
-2. Vérifier les logs OpenClaw :
+1. Envoyer un mail test depuis une adresse externe vers la boite Gmail.
+2. Verifier les logs du service :
    ```bash
-   journalctl -u openclaw -n 50 --no-pager | grep -i mail
+   journalctl -u openclaw-gmail-pubsub -n 50 --no-pager
    ```
-3. Vérifier l'apparition dans `#📥-inbox` sur Discord.
-4. Vérifier le dédoublonnage en renvoyant le même mail.
+3. Le log doit montrer :
+   - `Found 1 new message(s)`
+   - `Classifying: <sujet> — <expediteur>`
+   - `📬 Notifying: <sujet> (category=..., score=...%)`
+4. Verifier l'apparition dans `#📥-inbox` sur Discord.
 
 ### Test de classification
 
-1. Envoyer un mail avec `URGENT` dans l'objet → doit apparaître dans la catégorie `important`.
-2. Envoyer un mail depuis une adresse `@umons.ac.be` → doit apparaître en `umons`.
-3. Envoyer un mail depuis `newsletter@example.com` → ne doit pas être notifié.
+1. Envoyer un mail avec `URGENT` dans l'objet -> doit apparaitre en `important`.
+2. Envoyer un mail depuis une adresse `@umons.ac.be` -> doit apparaitre en `umons`.
+3. Envoyer un mail depuis `newsletter@example.com` -> ne doit pas etre notifie.
+4. Envoyer un mail avec `notification de securite` -> `admin`, notifie
+   seulement si score > 0.7.
+
+### Test de dedoublonnage
+
+1. Envoyer un mail.
+2. Attendre la notification dans `#📥-inbox`.
+3. Redemarrer le service :
+   ```bash
+   systemctl restart openclaw-gmail-pubsub
+   ```
+4. Verifier que le meme mail n'apparait pas une seconde fois (le service
+   utilise `gmail-seen-ids.json`).
 
 ## Troubleshooting
 
-### Le bot ne reçoit pas les nouveaux mails
+### Le service ne recoit pas les notifications
 
-1. Vérifier que le service OpenClaw tourne :
+1. Verifier que le service tourne :
    ```bash
-   systemctl status openclaw
+   systemctl status openclaw-gmail-pubsub
    ```
-2. Vérifier les logs :
+2. Verifier les logs :
    ```bash
-   journalctl -u openclaw -n 100 --no-pager
+   journalctl -u openclaw-gmail-pubsub -n 100 --no-pager
    ```
-3. Vérifier que le token OAuth est valide :
+3. Verifier que le token OAuth est valide :
    ```bash
-   gog auth test
+   # Tester manuellement (voir section Tests)
    ```
-   Si le refresh token a expiré ou est révoqué, le regénérer via la console
-   Google Cloud et mettre à jour `GMAIL_REFRESH_TOKEN` dans le fichier de secrets.
+   Si le refresh token a expire ou est revoque, le regenerer via la console
+   Google Cloud et mettre a jour `/run/secrets/openclaw.env`.
 
-4. Vérifier que la watch Gmail est active :
+4. Verifier que la watch Gmail est active :
    ```bash
-   gog mail watch status
+   ACCESS_TOKEN=...
+   curl -s "https://gmail.googleapis.com/gmail/v1/users/me/profile" \
+     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
    ```
-   La watch expire après 7 jours. OpenClaw doit la renouveler automatiquement.
-   Si ce n'est pas le cas, redémarrer le service.
+   La watch expire apres 7 jours. Le service la renouvelle automatiquement.
 
-### Erreur d'authentification Gmail
+5. Verifier que Pub/Sub recoit bien les messages :
+   - Aller dans la console GCP > Pub/Sub > Subscription.
+   - Cliquer sur "View messages" et faire un pull manuel.
+   - Si aucun message n'arrive, verifier que la watch Gmail est bien
+     configuree avec le bon topic.
 
-- Cause fréquente : refresh token expiré ou révoqué.
-- Solution : regénérer le refresh token (OAuth playground ou flow applicatif).
-- Vérifier que l'application Google Cloud n'est pas en mode "Testing" avec
-  un quota dépassé. Passer en "Production" ou ajouter l'utilisateur comme
-  test user.
+### Erreur "403 — Gmail API not enabled"
 
-### Erreur gog keyring
+- Activer la Gmail API dans la console Google Cloud.
+- Verifier que le scope OAuth inclut `https://www.googleapis.com/auth/gmail.readonly`.
 
-- `GOG_KEYRING_PASSWORD` est nécessaire pour déverrouiller le fichier keyring
-  local de gog.
-- Si le mot de passe est perdu, supprimer le keyring (`/var/lib/openclaw/.gog/`)
-  et refaire le flow OAuth complet.
+### Erreur "403 — Pub/Sub API not enabled"
 
-### Le canal Discord n'existe pas
+- Activer la Pub/Sub API dans la console Google Cloud.
+- Verifier que le compte a le role `roles/pubsub.subscriber` sur la subscription.
 
-- Vérifier que `DISCORD_INBOX_CHANNEL_ID` est correct.
-- Si OpenClaw gère l'auto-création de canaux, vérifier que le bot a la
-  permission `Manage Channels`.
-- Vérifier les logs pour des erreurs 404 ou 403 sur l'API Discord.
+### Erreur "401 — unauthorized" sur Pub/Sub
+
+- Le refresh token OAuth fonctionne pour Gmail mais pas forcement pour Pub/Sub.
+- Solution : ajouter le scope `https://www.googleapis.com/auth/pubsub` lors
+  de la generation du refresh token, ou utiliser un service account JSON
+  a la place du refresh token OAuth pour Pub/Sub.
 
 ### Doublons dans #📥-inbox
 
-- Vérifier que `mail-cursor.json` est accessible en écriture :
+- Verifier que `gmail-seen-ids.json` est accessible en ecriture :
   ```bash
-  ls -la /var/lib/openclaw/state/mail-cursor.json
+  ls -la /var/lib/openclaw/state/gmail-seen-ids.json
   ```
-- Si le fichier est corrompu, le supprimer et redémarrer le service.
-  Le bot repartira du dernier message non traité.
+- Si le fichier est corrompu, le supprimer et redemarrer le service.
 
-## Sécurité des secrets
+### DeepSeek retourne des erreurs
+
+- Verifier la cle API :
+  ```bash
+  curl -s https://api.deepseek.com/v1/models \
+    -H "Authorization: Bearer $DEEPSEEK_API_KEY" | jq .
+  ```
+- En cas de rate limit (429), le script reessaie automatiquement 3 fois
+  avec backoff exponentiel.
+- Si DeepSeek echoue completement, le fallback heuristique prend le relais.
+
+## Securite des secrets
 
 ### Principes
 
-- **Aucun secret** n'est présent dans ce dépôt Git.
-- Les secrets transitent uniquement via :
-  - `/run/secrets/openclaw.env` (fichier temporaire, monté en tmpfs).
-  - Le fichier keyring local de `gog` (protégé par `GOG_KEYRING_PASSWORD`).
-- Les fichiers de configuration dans `/etc/openclaw/` utilisent des
-  variables d'environnement (`${VAR}`) et ne contiennent pas de secrets
-  en clair.
+- **Aucun secret** n'est present dans ce depot Git.
+- Les secrets sont injectes via `/run/secrets/openclaw.env` (tmpfs, root-only).
+- Le script Python lit les variables d'environnement uniquement.
+- Les fichiers de state (`/var/lib/openclaw/state/`) ne contiennent
+  aucun secret (historyId, timestamps, Message-IDs).
 
-### Fichiers à ne jamais commiter
+### Fichiers a ne jamais commiter
 
 ```
 /run/secrets/openclaw.env
-/var/lib/openclaw/.gog/keyring
-/etc/openclaw/config.yaml (si contient des secrets en dur)
-~/.config/gog/credentials.json
 local-secrets/openclaw.env
+*.env
+credentials.json
+*.gog
 ```
 
 ### Rotation des secrets
 
-| Secret | Procédure de rotation |
+| Secret | Procedure |
 |---|---|
-| `DISCORD_BOT_TOKEN` | Discord Developer Portal → Bot → Reset Token |
-| `GMAIL_REFRESH_TOKEN` | Rejouer le flow OAuth 2.0 → nouveau refresh token |
-| `GOG_KEYRING_PASSWORD` | Regénérer via `gog keyring init` |
-| `OPENAI_API_KEY` | OpenAI Dashboard → API Keys → Create |
+| `GMAIL_REFRESH_TOKEN` | Rejouer le flow OAuth 2.0 -> nouveau refresh token |
+| `DEEPSEEK_API_KEY` | DeepSeek Dashboard -> API Keys -> Create |
+| `DISCORD_WEBHOOK_URL` | Discord -> Parametres du canal -> Integrations -> Webhooks |
 
-Après rotation, mettre à jour le fichier de secrets sur IONOS-VPS3 et
-redémarrer le service :
+Apres rotation, mettre a jour `/run/secrets/openclaw.env` et redemarrer :
 
 ```bash
-systemctl restart openclaw
+systemctl restart openclaw-gmail-pubsub
 ```
 
 ### Backups
 
-- La configuration Nix et les fichiers de template sont dans ce dépôt Git.
-- Le fichier de secrets `/run/secrets/openclaw.env` n'est **pas** sauvegardé
-  automatiquement. Utiliser le vault chiffré local pour le stocker :
+- Le script est dans ce depot Git (`scripts/openclaw-gmail-pubsub.py`).
+- La configuration systemd est documentee ci-dessus.
+- Le fichier de secrets `/run/secrets/openclaw.env` n'est **pas** sauvegarde
+  automatiquement. Utiliser le vault chiffre local :
   ```bash
   ./scripts/build-local-secret-vault.sh
   ```
-- Le state (`mail-cursor.json`) est dans `/var/lib/openclaw/state/`. Il peut
-  être sauvegardé mais n'est pas critique (le bot peut repartir de zéro).
+- Les fichiers de state dans `/var/lib/openclaw/state/` ne sont pas
+  critiques (le service peut repartir de zero).
 
-## Déploiement sur IONOS-VPS3
+## Deploiement sur IONOS-VPS3
 
-IONOS-VPS3 n'est **pas** géré par Nix/NixOS. Le déploiement se fait de manière
-classique :
+IONOS-VPS3 n'est **pas** gere par Nix/NixOS. Le deploiement est manuel :
 
-1. Installer le binaire OpenClaw dans `/opt/openclaw/bin/`.
-2. Copier les fichiers de configuration dans `/etc/openclaw/`.
-3. Copier les unités systemd dans `/etc/systemd/system/`.
-4. Créer l'utilisateur système `openclaw`.
-5. Placer le fichier de secrets dans `/run/secrets/openclaw.env`.
-6. Activer et démarrer les services.
+1. Copier le script sur le serveur :
+   ```bash
+   scp scripts/openclaw-gmail-pubsub.py root@IONOS-VPS3:/opt/openclaw/scripts/
+   ```
+2. Creer l'utilisateur systeme :
+   ```bash
+   useradd -r -s /sbin/nologin -d /var/lib/openclaw -m openclaw
+   ```
+3. Creer le fichier de secrets :
+   ```bash
+   cat > /run/secrets/openclaw.env << 'EOF'
+   GMAIL_CLIENT_ID=...
+   GMAIL_CLIENT_SECRET=...
+   GMAIL_REFRESH_TOKEN=...
+   GMAIL_PUBSUB_TOPIC=projects/.../topics/...
+   GMAIL_PUBSUB_SUBSCRIPTION=projects/.../subscriptions/...
+   DEEPSEEK_API_KEY=sk-...
+   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/.../...
+   EOF
+   chmod 600 /run/secrets/openclaw.env
+   ```
+4. Installer l'unite systemd :
+   ```bash
+   cp openclaw-gmail-pubsub.service /etc/systemd/system/
+   systemctl daemon-reload
+   ```
+5. Demarrer et activer :
+   ```bash
+   systemctl enable --now openclaw-gmail-pubsub
+   systemctl status openclaw-gmail-pubsub
+   ```
 
 ### Arborescence cible
 
 ```
 /opt/openclaw/
-└── bin/
-    └── openclaw          # binaire
-
-/etc/openclaw/
-├── config.yaml
-└── skills/
-    └── personal-mail-triage.yaml
+└── scripts/
+    └── openclaw-gmail-pubsub.py    # script de ce depot
 
 /var/lib/openclaw/
-├── .gog/                  # keyring gog (protégé)
 └── state/
-    └── mail-cursor.json
-
-/var/log/openclaw/         # logs
+    ├── gmail-history-id.txt
+    ├── gmail-watch-expiry.txt
+    └── gmail-seen-ids.json
 
 /run/secrets/
-└── openclaw.env           # secrets (tmpfs, root-only)
+└── openclaw.env                    # secrets (tmpfs, root-only)
+
+/etc/systemd/system/
+└── openclaw-gmail-pubsub.service
 ```
+
+### Script de boot pour recreer /run/secrets
+
+`/run` est un tmpfs, donc le fichier `/run/secrets/openclaw.env` disparait
+apres reboot. Solution : un oneshot systemd qui le recreer a partir d'un
+fichier source securise ou d'un vault.
+
+`/etc/systemd/system/openclaw-secrets.service` :
+
+```ini
+[Unit]
+Description=Restore OpenClaw secrets file
+Before=openclaw-gmail-pubsub.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/install -m 600 -o root -g root /etc/openclaw/secrets.env /run/secrets/openclaw.env
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+```
+
+> **Attention** : cela suppose que `/etc/openclaw/secrets.env` existe avec
+> les permissions `600`. A configurer manuellement.
 
 ## TODO
 
 - [ ] Tester le flow OAuth complet depuis IONOS-VPS3.
-- [ ] Documenter la procédure exacte de création du refresh token Gmail
-      (console Google Cloud → OAuth 2.0 → refresh token).
-- [ ] Vérifier que `#📥-inbox` est créé automatiquement par OpenClaw ou
-      documenter la création manuelle.
-- [ ] Ajouter le canal `#📥-inbox` à la configuration Discord du bot.
-- [ ] Vérifier la persistance de `/run/secrets/openclaw.env` après reboot
-      (tmpfs → recréer via script au boot ou utiliser `/etc/` avec permissions 600).
+- [ ] Documenter la procedure exacte de creation du refresh token Gmail
+      (console Google Cloud -> OAuth 2.0 -> refresh token).
+- [ ] Creer le topic et la subscription Pub/Sub dans la console GCP.
+- [ ] Verifier que le compte OAuth a les droits `pubsub.subscriber`.
+- [ ] Configurer le script de boot pour recreer `/run/secrets/openclaw.env`.
+- [ ] Ajouter un healthcheck Discord facultatif (`/status`).
+- [ ] Monitorer le service (alerte si downtime > 5 min).
