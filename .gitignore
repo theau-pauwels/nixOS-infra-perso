@@ -22,3 +22,6 @@ result
 credentials.json
 *.gog
 openclaw.env
+openclaw.json
+.state/
+keyring/

@@ -126,10 +126,34 @@ python3 -c "import py_compile; py_compile.compile('scripts/openclaw-gmail-pubsub
 - **Phase 8.4** : Monitoring et alertes (healthcheck, downtime alerts)
 - **Phase 8.5** : Webhook secondaire pour UMONS (si转发 change)
 
+## Diagnostic et correction sur IONOS-VPS3 (2026-05-09)
+
+### Probleme
+Le mail de 1h47 UTC n'a pas ete delivre. gog a bien recu la notification
+Pub/Sub a 01:48:11 UTC, mais le forward vers OpenClaw a echoue avec HTTP 400.
+
+### Cause
+`hooks.allowRequestSessionKey` etait absent de `/home/theau/.openclaw/openclaw.json`.
+Le hook Gmail retournait :
+```json
+{"ok":false,"error":"sessionKey is disabled for externally supplied hook payload values; set hooks.allowRequestSessionKey=true to enable"}
+```
+
+### Correction
+Ajout de `"allowRequestSessionKey": true` dans la section `hooks` du fichier
+`/home/theau/.openclaw/openclaw.json`. Hot reload detecte et applique par
+OpenClaw. Test curl confirme HTTP 200.
+
+### Resultat
+- `lastDeliveryStatus` dans le state gog passe de `"http_error"` a `"ok"`
+- Le mail de test suivant est passe correctement
+- Le mail de 1h47 UTC n'a pas ete rejoue (historyId deja avance)
+
 ## Notes
 
 - IONOS-VPS3 n'est **pas** gere par Nix/NixOS. Le deploiement est manuel.
-- Aucun secret dans ce depot (`.env`, `credentials.json`, `*.gog` ignores).
-- Le script n'utilise que la stdlib Python (pas de `pip install` requis).
+- Aucun secret dans ce depot (`.env`, `credentials.json`, `*.gog`, `openclaw.json` ignores).
+- Le script Python `openclaw-gmail-pubsub.py` n'est pas deploye — OpenClaw
+  natif (Node.js) et gog (Go) sont utilises en production.
 - Le Pub/Sub remplace le polling IMAP - latence < 5s au lieu de 60-120s.
-- DeepSeek remplace OpenAI (`deepseek-chat` au lieu de `gpt-4.1-mini`).
+- DeepSeek remplace OpenAI (`deepseek-v4-flash` au lieu de `gpt-4.1-mini`).
