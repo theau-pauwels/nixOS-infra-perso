@@ -15,3 +15,10 @@ __pycache__/
 *.pyc
 result
 .venv/
+
+# OpenClaw / Gmail webhook secrets
+*.env
+*.env.*
+credentials.json
+*.gog
+openclaw.env
