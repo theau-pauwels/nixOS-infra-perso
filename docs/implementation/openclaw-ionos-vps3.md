@@ -261,11 +261,63 @@ cat /home/theau/.config/gogcli/state/gmail-watch/theau_pauwels_gmail_com.json
 - Scope Gmail : `https://www.googleapis.com/auth/gmail.readonly`
 - Scope Pub/Sub : `https://www.googleapis.com/auth/pubsub`
 
+## Workspace et Skills
+
+### Repertoire
+
+`/home/theau/.openclaw/workspace/`
+
+### Skills installes
+
+| Skill | Fichier | Usage |
+|---|---|---|
+| `personal-agenda` | `skills/personal-agenda/SKILL.md` | Agenda Google, iPhone, UMONS via `my-agenda` |
+| `personal-mail-triage` | `skills/personal-mail-triage/SKILL.md` | Classification des mails Gmail, notification Discord `#📥-inbox` |
+| `personal-tasks` | `skills/personal-tasks/SKILL.md` | Gestion des taches Discord `#✅-tasks` |
+| `gog` | `skills/gog/SKILL.md` | CLI Google (Gmail, Calendar, Drive...) — requis par les autres skills |
+
+> **Attention** : le skill `gog` (`skills/gog/SKILL.md`) est indispensable.
+> Sans lui, tout appel a l'outil `gog` echoue avec :
+> `[tools] read failed: ENOENT: no such file or directory, access '...gog/SKILL.md'`
+
+### Fichiers du workspace
+
+| Fichier | Role |
+|---|---|
+| `AGENTS.md` | Configuration des agents |
+| `SOUL.md` | Personnalite du bot |
+| `IDENTITY.md` | Identite de l'assistant |
+| `USER.md` | Infos sur l'utilisateur (Theau) |
+| `MEMORY.md` | Memoire persistante |
+| `MEMORY.md` | Memoire persistante |
+| `HEARTBEAT.md` | Healthcheck |
+| `TOOLS.md` | Notes sur les outils locaux |
+| `calendar-context.md` | Contexte calendrier |
+| `memory/` | Souvenirs quotidiens (un `.md` par jour) |
+| `tasks/` | Taches en cours |
+
+### Cron jobs
+
+Definis dans `/home/theau/.openclaw/cron/jobs.json` :
+
+| Nom | Cron (Europe/Brussels) | Cible Discord |
+|---|---|---|
+| Resume de la journee | `0 7 * * *` (07:00) | channel:1500624381066350596 |
+| Resume des taches | `10 7 * * *` (07:10) | — |
+| Resume quotidien des taches | `10 7 * * *` (07:10) | `#✅-tasks` |
+| Reminder: noms presidents cercles | `0 9 * * *` (09:00) | — |
+| Resume de demain | `0 20 * * *` (20:00) | channel:1501277006812287018 |
+| Resume semaine a venir | `0 21 * * 0` (dim. 21:00) | channel:1500624382609850528 |
+
 ## Discord
 
 - **Bot** : OpenClaw, ID `1501239747585249430`
 - **Guild** : Pixel's server, ID `1500615336687439912`
-- **Canal inbox** : `#📥-inbox` (cree manuellement)
+- **Canaux** :
+  - `#📥-inbox` (ID: `1500624380286337185`) — notifications mail
+  - `#✅-tasks` (ID: `1500624383515820143`) — taches actives
+  - `#✅-task-done` (ID: `1501280239979069520`) — taches terminees
+  - `#🔧-logs` (ID: `1500624388502978819`) — logs
 - **Permissions** : View Channels, Send Messages, Read Message History
 
 ## Variables d'environnement
