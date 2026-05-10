@@ -293,6 +293,24 @@ cat /home/theau/.config/gogcli/state/gmail-watch/theau_pauwels_gmail_com.json
 | `HEARTBEAT.md` | Healthcheck |
 | `TOOLS.md` | Notes sur les outils locaux |
 | `calendar-context.md` | Contexte calendrier |
+| `calendars/*.url` | URLs ICS des flux de calendriers (UMONS) |
+
+### Scripts de calendrier
+
+| Script | Role |
+|---|---|
+| `~/.local/bin/my-agenda` | Interroge 5 sources : Google principal, iPhone, Cours BA3-MA1 (Google + ICS direct), Outlook UMONS |
+| `~/.local/bin/my-ics-events` | Parse un flux ICS et affiche les evenements entre FROM et TO |
+
+### Sources de calendrier
+
+1. **Google principal** — `theau.pauwels@gmail.com` (gog)
+2. **iPhone** — `029342...@group.calendar.google.com` (gog)
+3. **Cours BA3-MA1** — Google Calendar ICS import `msq0gf...@import.calendar.google.com` (gog)
+4. **Cours BA3-MA1 (ICS direct)** — `ical.umons.ac.be` (via `my-ics-events`) — plus frais que l'import Google
+5. **Mails facultaires / Outlook UMONS** — `outlook.office365.com` (via `my-ics-events`)
+
+Les feeds ICS directs (4 et 5) sont plus a jour que l'import Google Calendar.
 | `memory/` | Souvenirs quotidiens (un `.md` par jour) |
 | `tasks/` | Taches en cours |
 
