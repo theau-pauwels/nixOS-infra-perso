@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+ACCOUNT="theau.pauwels@gmail.com"
+MAIN_CAL="theau.pauwels@gmail.com"
+IPHONE_CAL="029342cfe6aa35acc532987b719017828f8bc81c9be7f599659e96a3f9e828a1@group.calendar.google.com"
+UMONS_CAL="msq0gfpodturbj0a7svn1hvjjd5hgjf7@import.calendar.google.com"
+
+FROM="${1:-$(date +%Y-%m-%d)T00:00:00+02:00}"
+TO="${2:-$(date -d '+7 days' +%Y-%m-%d)T00:00:00+02:00}"
+
+run_calendar() {
+  local name="$1"
+  local cal="$2"
+  local page=""
+  local page_count=0
+  local printed_header=0
+
+  echo "=== $name ==="
+
+  while true; do
+    page_count=$((page_count + 1))
+
+    if [ "$page_count" -gt 20 ]; then
+      echo "Pagination stopped after 20 pages."
+      break
+    fi
+
+    if [ -z "$page" ]; then
+      output="$(gog calendar events "$cal" --from "$FROM" --to "$TO" --account "$ACCOUNT" 2>&1 || true)"
+    else
+      output="$(gog calendar events "$cal" --from "$FROM" --to "$TO" --account "$ACCOUNT" --page "$page" 2>&1 || true)"
+    fi
+
+    next_page="$(printf '%s\n' "$output" | sed -n 's/.*Next page: --page \([^[:space:]]*\).*/\1/p' | head -n 1)"
+
+    clean_output="$(printf '%s\n' "$output" | grep -v 'Next page: --page' || true)"
+
+    if [ "$printed_header" -eq 0 ]; then
+      printf '%s\n' "$clean_output"
+      printed_header=1
+    else
+      printf '%s\n' "$clean_output" | sed '/^ID[[:space:]]/d'
+    fi
+
+    if [ -z "$next_page" ]; then
+      break
+    fi
+
+    page="$next_page"
+  done
+
+  echo
+}
+
+run_calendar "Main Google Calendar" "$MAIN_CAL"
+run_calendar "iPhone" "$IPHONE_CAL"
+run_calendar "Cours BA3-MA1" "$UMONS_CAL"
+
+echo "=== Cours BA3-MA1 (ICS direct) ==="
+/home/theau/.local/bin/my-ics-events "$HOME/.config/openclaw/calendars/cours-ba3-ma1.url" "$FROM" "$TO" || true
+echo
+
+echo "=== Mails facultaires / Outlook UMONS ==="
+/home/theau/.local/bin/my-ics-events "$HOME/.config/openclaw/calendars/faculty-mail.url" "$FROM" "$TO" || true
+echo

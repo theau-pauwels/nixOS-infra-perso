@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VENV="$HOME/.local/share/openclaw-ics-venv"
+exec "$VENV/bin/python" - "$@" <<'PY'
+import sys
+from pathlib import Path
+from datetime import datetime, date, time
+from zoneinfo import ZoneInfo
+
+import requests
+from dateutil.parser import isoparse
+from icalendar import Calendar
+import recurring_ical_events
+
+if len(sys.argv) != 4:
+    print("Usage: my-ics-events URL_FILE FROM TO", file=sys.stderr)
+    sys.exit(2)
+
+url_file = Path(sys.argv[1]).expanduser()
+start = isoparse(sys.argv[2])
+end = isoparse(sys.argv[3])
+tz = ZoneInfo("Europe/Brussels")
+
+if start.tzinfo is None:
+    start = start.replace(tzinfo=tz)
+if end.tzinfo is None:
+    end = end.replace(tzinfo=tz)
+
+url = url_file.read_text().strip()
+response = requests.get(url, timeout=20)
+response.raise_for_status()
+
+cal = Calendar.from_ical(response.content)
+events = recurring_ical_events.of(cal).between(start, end)
+
+rows = []
+
+def to_dt(value):
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=tz)
+        return value.astimezone(tz)
+    if isinstance(value, date):
+        return datetime.combine(value, time.min, tzinfo=tz)
+    return None
+
+for event in events:
+    summary = str(event.get("summary", "")).strip()
+    uid = str(event.get("uid", "")).strip()
+
+    dtstart = event.get("dtstart")
+    dtend = event.get("dtend")
+
+    if not dtstart:
+        continue
+
+    s = to_dt(dtstart.dt)
+    e = to_dt(dtend.dt) if dtend else None
+
+    if not s:
+        continue
+
+    if e is None:
+        e = s
+
+    if e < start or s > end:
+        continue
+
+    rows.append((s, e, uid, summary))
+
+rows.sort(key=lambda x: x[0])
+
+if not rows:
+    print("No events")
+    sys.exit(0)
+
+print(f"{'ID':60}  {'START':25}  {'END':25}  SUMMARY")
+for s, e, uid, summary in rows:
+    print(f"{uid[:60]:60}  {s.isoformat(timespec='minutes'):25}  {e.isoformat(timespec='minutes'):25}  {summary}")
+PY

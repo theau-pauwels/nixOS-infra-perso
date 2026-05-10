@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "f10544e1-bbe6-4c1f-aa7a-28f8bd328eee",
+      "name": "Résumé semaine à venir",
+      "enabled": true,
+      "createdAtMs": 1778002467392,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 21 * * 0",
+        "tz": "Europe/Brussels",
+        "staggerMs": 0
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Utilise le skill personal-agenda. Fais un résumé clair de ma semaine à venir, du lundi au dimanche prochains, en consultant mes agendas Google, iPhone et UMONS. Groupe par jour, mentionne les cours, rendez-vous, conflits éventuels et moments importants. Ne parse pas tout l'agenda annuel : limite-toi à la semaine qui arrive."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1500624382609850528"
+      },
+      "state": {}
+    },
+    {
+      "id": "5e010285-0627-451b-900f-16b77a9f324b",
+      "name": "Résumé de la journée",
+      "enabled": true,
+      "createdAtMs": 1778002486321,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 7 * * *",
+        "tz": "Europe/Brussels",
+        "staggerMs": 0
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Utilise le skill personal-agenda. Fais un résumé de mon planning d'aujourd'hui uniquement, en consultant mes agendas Google, iPhone et UMONS. Indique les heures, les cours, les rendez-vous, les tâches importantes et les conflits éventuels. Ne consulte pas plus que la journée actuelle."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1500624381066350596"
+      },
+      "state": {}
+    },
+    {
+      "id": "a5ca667f-c0bc-4125-a685-90e8e26b9baa",
+      "name": "Résumé de demain",
+      "enabled": true,
+      "createdAtMs": 1778002896310,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 20 * * *",
+        "tz": "Europe/Brussels",
+        "staggerMs": 0
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Utilise le skill personal-agenda. Fais un résumé de mon planning de demain uniquement, en consultant mes agendas Google, iPhone et UMONS. Indique les heures, les cours, les rendez-vous, les déplacements probables et les conflits éventuels. Ne consulte pas plus que la journée de demain."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1501277006812287018"
+      },
+      "state": {}
+    },
+    {
+      "id": "eac28d4d-4ecd-4216-b15b-52d98a3e18a2",
+      "name": "Résumé des tâches",
+      "enabled": true,
+      "createdAtMs": 1778003751034,
+      "schedule": {
+        "kind": "cron",
+        "expr": "10 7 * * *",
+        "tz": "Europe/Brussels",
+        "staggerMs": 0
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Utilise le skill personal-tasks. Lis le channel tasks, fais un résumé court de mes tâches actives, urgentes, bloquées et probablement terminées. Si des tâches ont une réaction ✅, propose de les déplacer vers #✅-task-done ou de les supprimer, mais ne supprime rien automatiquement."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1500624383515820143"
+      },
+      "state": {}
+    },
+    {
+      "id": "e0319788-4663-4ebe-bcfb-9b5c3c62bcd8",
+      "name": "Résumé quotidien des tâches",
+      "enabled": true,
+      "createdAtMs": 1778013612703,
+      "schedule": {
+        "kind": "cron",
+        "expr": "10 7 * * *",
+        "tz": "Europe/Brussels",
+        "staggerMs": 0
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Utilise le skill personal-tasks. Mets à jour #✅-tasks pour qu'il ne contienne que les tâches restantes. Déplace les tâches avec réaction ✅ vers #✅-task-done, supprime les messages obsolètes liés aux tâches terminées ou doublonnées, puis publie un court résumé des tâches actives."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1500624383515820143"
+      },
+      "state": {}
+    },
+    {
+      "id": "b17dd9d2-af7e-4f95-be4e-7eed029bde06",
+      "agentId": "main",
+      "sessionKey": "agent:main:discord:channel:1500648183028518983",
+      "name": "Reminder: donner noms presidents cercles baptemes a Lolo",
+      "enabled": true,
+      "deleteAfterRun": true,
+      "createdAtMs": 1778183494756,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * *",
+        "tz": "Europe/Brussels"
+      },
+      "sessionTarget": "session:agent:main:discord:channel:1500648183028518983",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Rappelle à Pixel de donner les noms de tous les présidents des cercles de baptêmes à Lolo."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "1500648183028518983"
+      },
+      "state": {}
+    },
+    {
+      "id": "ceb97914-47d0-4b4e-b327-949fe3f075eb",
+      "agentId": "main",
+      "sessionKey": "agent:main:discord:channel:1500624380286337185",
+      "name": "MAB1 Project deadline reminder",
+      "enabled": true,
+      "deleteAfterRun": true,
+      "createdAtMs": 1778308681968,
+      "schedule": {
+        "kind": "at",
+        "at": "2026-05-15T06:00:00.000Z"
+      },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "systemEvent",
+        "text": "Rappel : le deliverable du MAB1 Project est à rendre dans 1 semaine (deadline 22 mai). Voir la tâche dans #✅-tasks."
+      },
+      "state": {}
+    }
+  ]
+}
