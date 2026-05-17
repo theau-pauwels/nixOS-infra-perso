@@ -139,6 +139,21 @@
     ];
   };
 
+  # Assurer que /srv/nas reste world-writable (exfat avait umask=000)
+  systemd.services.fix-nas-permissions = {
+    description = "Fix /srv/nas ownership and permissions";
+    wantedBy = [ "multi-user.target" ];
+    before = [ "samba-smbd.service" "filebrowser.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      chown -R theau:users /srv/nas
+      chmod -R 777 /srv/nas
+    '';
+  };
+
   personalInfra.observability.exporters.enable = false;
   personalInfra.backup.restic.enable = false;
 
