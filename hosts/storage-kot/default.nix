@@ -129,21 +129,15 @@
     fi
   '';
 
+  # /srv/nas — disque de donnees (migre exfat -> ext4)
   fileSystems."/srv/nas" = {
-    device = "/dev/disk/by-uuid/7FDF-D517";
-    fsType = "exfat";
+    device = "/dev/disk/by-uuid/7FDF-D517";  # TODO: verifier le nouvel UUID apres migration ext4
+    fsType = "ext4";
     options = [
       "defaults"
       "nofail"
-      "uid=1000"
-      "gid=1000"
-      "umask=000"
     ];
   };
-
-  boot.kernelModules = [ "exfat" ];
-  nixpkgs.config.allowUnfree = true;
-  environment.systemPackages = [ pkgs.exfatprogs ];
 
   personalInfra.observability.exporters.enable = false;
   personalInfra.backup.restic.enable = false;
