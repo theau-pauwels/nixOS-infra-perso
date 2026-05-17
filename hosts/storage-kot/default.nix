@@ -131,7 +131,7 @@
 
   # /srv/nas — disque de donnees (migre exfat -> ext4)
   fileSystems."/srv/nas" = {
-    device = "/dev/disk/by-uuid/7FDF-D517";  # TODO: verifier le nouvel UUID apres migration ext4
+    device = "/dev/disk/by-uuid/5d45548a-3a2e-4db5-9db8-97f6a4b23902";
     fsType = "ext4";
     options = [
       "defaults"
