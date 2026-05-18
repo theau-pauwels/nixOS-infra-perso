@@ -80,8 +80,8 @@
         browseable = "yes";
         "read only" = "no";
         "guest ok" = "yes";
-        "create mask" = "0664";
-        "directory mask" = "0775";
+        "create mask" = "0666";
+        "directory mask" = "0777";
         "force user" = "theau";
         "force group" = "users";
       };
@@ -90,8 +90,8 @@
         browseable = "yes";
         "read only" = "no";
         "guest ok" = "yes";
-        "create mask" = "0664";
-        "directory mask" = "0775";
+        "create mask" = "0666";
+        "directory mask" = "0777";
         "force user" = "theau";
         "force group" = "users";
       };
@@ -100,8 +100,8 @@
         browseable = "yes";
         "read only" = "no";
         "guest ok" = "yes";
-        "create mask" = "0664";
-        "directory mask" = "0775";
+        "create mask" = "0666";
+        "directory mask" = "0777";
         "force user" = "theau";
         "force group" = "users";
       };
@@ -128,6 +128,9 @@
       filebrowser users update 1 --username=theau --perm.admin=true --database /var/lib/filebrowser/database.db 2>/dev/null || true
     fi
   '';
+
+  # Filebrowser a besoin d'ecrire dans /srv/nas (appartient a theau:users)
+  users.users.filebrowser.extraGroups = [ "users" ];
 
   # /srv/nas — disque de donnees (migre exfat -> ext4)
   fileSystems."/srv/nas" = {
