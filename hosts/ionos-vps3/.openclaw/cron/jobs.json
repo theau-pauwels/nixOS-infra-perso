@@ -196,7 +196,7 @@
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "Execute la commande: python3 /root/.local/bin/carbu-diesel-scraper.py. Poste le resultat tel quel dans ce channel. N ajoute rien."
+        "message": "Utilise le skill diesel-price. Poste le resultat dans ce channel."
       },
       "delivery": {
         "mode": "announce",
