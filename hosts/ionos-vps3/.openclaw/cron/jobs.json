@@ -2,21 +2,20 @@
   "version": 1,
   "jobs": [
     {
-      "id": "f10544e1-bbe6-4c1f-aa7a-28f8bd328eee",
-      "name": "Résumé semaine à venir",
+      "id": "75d43695-bce1-4901-b447-9454351959bc",
+      "name": "R\u00e9sum\u00e9 semaine \u00e0 venir",
       "enabled": true,
-      "createdAtMs": 1778002467392,
+      "createdAtMs": 1778892269289,
       "schedule": {
         "kind": "cron",
         "expr": "0 21 * * 0",
-        "tz": "Europe/Brussels",
-        "staggerMs": 0
+        "tz": "Europe/Brussels"
       },
       "sessionTarget": "isolated",
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "Utilise le skill personal-agenda. Fais un résumé clair de ma semaine à venir, du lundi au dimanche prochains, en consultant mes agendas Google, iPhone et UMONS. Groupe par jour, mentionne les cours, rendez-vous, conflits éventuels et moments importants. Ne parse pas tout l'agenda annuel : limite-toi à la semaine qui arrive."
+        "message": "Utilise le skill personal-agenda. Fais un r\u00e9sum\u00e9 clair de ma semaine \u00e0 venir, du lundi au dimanche prochains, en consultant mes agendas Google, iPhone et UMONS. Groupe par jour, mentionne les cours, rendez-vous, conflits \u00e9ventuels et moments importants. Ne parse pas tout l'agenda annuel : limite-toi \u00e0 la semaine qui arrive."
       },
       "delivery": {
         "mode": "announce",
@@ -26,21 +25,20 @@
       "state": {}
     },
     {
-      "id": "5e010285-0627-451b-900f-16b77a9f324b",
-      "name": "Résumé de la journée",
+      "id": "9b161f71-91f7-43d3-a43c-874fd1f92066",
+      "name": "R\u00e9sum\u00e9 de la journ\u00e9e",
       "enabled": true,
-      "createdAtMs": 1778002486321,
+      "createdAtMs": 1778892298892,
       "schedule": {
         "kind": "cron",
         "expr": "0 7 * * *",
-        "tz": "Europe/Brussels",
-        "staggerMs": 0
+        "tz": "Europe/Brussels"
       },
       "sessionTarget": "isolated",
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "Utilise le skill personal-agenda. Fais un résumé de mon planning d'aujourd'hui uniquement, en consultant mes agendas Google, iPhone et UMONS. Indique les heures, les cours, les rendez-vous, les tâches importantes et les conflits éventuels. Ne consulte pas plus que la journée actuelle."
+        "message": "Utilise le skill personal-agenda pour resumer mon planning du jour. Poste tout dans ce channel."
       },
       "delivery": {
         "mode": "announce",
@@ -50,21 +48,20 @@
       "state": {}
     },
     {
-      "id": "a5ca667f-c0bc-4125-a685-90e8e26b9baa",
-      "name": "Résumé de demain",
+      "id": "540e3da2-43ca-4c67-91d1-0653198a372a",
+      "name": "R\u00e9sum\u00e9 de demain",
       "enabled": true,
-      "createdAtMs": 1778002896310,
+      "createdAtMs": 1778892302030,
       "schedule": {
         "kind": "cron",
         "expr": "0 20 * * *",
-        "tz": "Europe/Brussels",
-        "staggerMs": 0
+        "tz": "Europe/Brussels"
       },
       "sessionTarget": "isolated",
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "Utilise le skill personal-agenda. Fais un résumé de mon planning de demain uniquement, en consultant mes agendas Google, iPhone et UMONS. Indique les heures, les cours, les rendez-vous, les déplacements probables et les conflits éventuels. Ne consulte pas plus que la journée de demain."
+        "message": "Utilise le skill personal-agenda. Fais un r\u00e9sum\u00e9 de mon planning de demain uniquement, en consultant mes agendas Google, iPhone et UMONS. Indique les heures, les cours, les rendez-vous, les d\u00e9placements probables et les conflits \u00e9ventuels. Ne consulte pas plus que la journ\u00e9e de demain."
       },
       "delivery": {
         "mode": "announce",
@@ -74,97 +71,185 @@
       "state": {}
     },
     {
-      "id": "eac28d4d-4ecd-4216-b15b-52d98a3e18a2",
-      "name": "Résumé des tâches",
+      "id": "4916ca8a-670e-408a-8966-b47ff36819dd",
+      "name": "R\u00e9sum\u00e9 des t\u00e2ches",
       "enabled": true,
-      "createdAtMs": 1778003751034,
+      "createdAtMs": 1778892305114,
       "schedule": {
         "kind": "cron",
         "expr": "10 7 * * *",
-        "tz": "Europe/Brussels",
-        "staggerMs": 0
-      },
-      "sessionTarget": "isolated",
-      "wakeMode": "now",
-      "payload": {
-        "kind": "agentTurn",
-        "message": "Utilise le skill personal-tasks. Lis le channel tasks, fais un résumé court de mes tâches actives, urgentes, bloquées et probablement terminées. Si des tâches ont une réaction ✅, propose de les déplacer vers #✅-task-done ou de les supprimer, mais ne supprime rien automatiquement."
-      },
-      "delivery": {
-        "mode": "announce",
-        "channel": "discord",
-        "to": "channel:1500624383515820143"
-      },
-      "state": {}
-    },
-    {
-      "id": "e0319788-4663-4ebe-bcfb-9b5c3c62bcd8",
-      "name": "Résumé quotidien des tâches",
-      "enabled": true,
-      "createdAtMs": 1778013612703,
-      "schedule": {
-        "kind": "cron",
-        "expr": "10 7 * * *",
-        "tz": "Europe/Brussels",
-        "staggerMs": 0
-      },
-      "sessionTarget": "isolated",
-      "wakeMode": "now",
-      "payload": {
-        "kind": "agentTurn",
-        "message": "Utilise le skill personal-tasks. Mets à jour #✅-tasks pour qu'il ne contienne que les tâches restantes. Déplace les tâches avec réaction ✅ vers #✅-task-done, supprime les messages obsolètes liés aux tâches terminées ou doublonnées, puis publie un court résumé des tâches actives."
-      },
-      "delivery": {
-        "mode": "announce",
-        "channel": "discord",
-        "to": "channel:1500624383515820143"
-      },
-      "state": {}
-    },
-    {
-      "id": "b17dd9d2-af7e-4f95-be4e-7eed029bde06",
-      "agentId": "main",
-      "sessionKey": "agent:main:discord:channel:1500648183028518983",
-      "name": "Reminder: donner noms presidents cercles baptemes a Lolo",
-      "enabled": true,
-      "deleteAfterRun": true,
-      "createdAtMs": 1778183494756,
-      "schedule": {
-        "kind": "cron",
-        "expr": "0 9 * * *",
         "tz": "Europe/Brussels"
       },
-      "sessionTarget": "session:agent:main:discord:channel:1500648183028518983",
+      "sessionTarget": "isolated",
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "Rappelle à Pixel de donner les noms de tous les présidents des cercles de baptêmes à Lolo."
+        "message": "Utilise le skill personal-tasks. Lis le channel tasks, fais un r\u00e9sum\u00e9 court de mes t\u00e2ches actives, urgentes, bloqu\u00e9es et probablement termin\u00e9es. Si des t\u00e2ches ont une r\u00e9action \u2705, propose de les d\u00e9placer vers #\u2705-task-done ou de les supprimer, mais ne supprime rien automatiquement."
       },
       "delivery": {
         "mode": "announce",
         "channel": "discord",
-        "to": "1500648183028518983"
+        "to": "channel:1500624383515820143"
       },
       "state": {}
     },
     {
-      "id": "ceb97914-47d0-4b4e-b327-949fe3f075eb",
-      "agentId": "main",
-      "sessionKey": "agent:main:discord:channel:1500624380286337185",
-      "name": "MAB1 Project deadline reminder",
+      "id": "87eb68ab-daba-459a-9574-0dfca68db561",
+      "name": "Nettoyage des t\u00e2ches",
       "enabled": true,
-      "deleteAfterRun": true,
-      "createdAtMs": 1778308681968,
+      "createdAtMs": 1778892308047,
       "schedule": {
-        "kind": "at",
-        "at": "2026-05-15T06:00:00.000Z"
+        "kind": "cron",
+        "expr": "10 7 * * *",
+        "tz": "Europe/Brussels"
       },
-      "sessionTarget": "main",
+      "sessionTarget": "isolated",
       "wakeMode": "now",
       "payload": {
-        "kind": "systemEvent",
-        "text": "Rappel : le deliverable du MAB1 Project est à rendre dans 1 semaine (deadline 22 mai). Voir la tâche dans #✅-tasks."
+        "kind": "agentTurn",
+        "message": "Utilise le skill personal-tasks. Mets \u00e0 jour #\u2705-tasks pour qu'il ne contienne que les t\u00e2ches restantes. D\u00e9place les t\u00e2ches avec r\u00e9action \u2705 vers #\u2705-task-done, supprime les messages obsol\u00e8tes li\u00e9s aux t\u00e2ches termin\u00e9es ou doublonn\u00e9es, puis publie un court r\u00e9sum\u00e9 des t\u00e2ches actives."
       },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1500624383515820143"
+      },
+      "state": {}
+    },
+    {
+      "id": "b5f7bfe4-004a-46f5-adcf-2120178e3dd6",
+      "name": "Meal-prep hebdomadaire",
+      "enabled": true,
+      "createdAtMs": 1778892789877,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 20 * * 0",
+        "tz": "Europe/Brussels"
+      },
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Ex\u00e9cute le skill meal-prep. Utilise /root/.local/bin/lidl-promos pour chercher les promos Lidl, puis utilise web_fetch sur folderbode.be/fr/lidl/ ou promojagers.be/fr/depliants/lidl pour obtenir les promos d\u00e9taill\u00e9es. Lis les fichiers dans /root/.openclaw/workspace/meal-prep/ pour la m\u00e9moire. Propose un meal-prep \u00e9conomique pour la semaine, poste le r\u00e9sultat format\u00e9 dans ce channel, et mets \u00e0 jour les fichiers de m\u00e9moire apr\u00e8s la r\u00e9ponse de Th\u00e9au."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1504902914295074886"
+      },
+      "sessionTarget": "agent:meal",
+      "state": {}
+    },
+    {
+      "id": "df7f65bf-4bf8-42b5-95ec-5a6d9cb9dd0c",
+      "name": "agent-hello-test",
+      "enabled": false,
+      "deleteAfterRun": true,
+      "createdAtMs": 1778925986783,
+      "schedule": {
+        "kind": "at",
+        "at": "2026-05-16T10:06:31.000Z"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "R\u00e9ponds uniquement 'Bonjour, je fonctionne.' dans channel:1500624380286337185. N'ajoute rien d'autre."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "last"
+      },
+      "state": {}
+    },
+    {
+      "id": "02853e42-5d7a-48b7-b7ca-aab3dd9f2861",
+      "name": "mail-5bc54011",
+      "enabled": false,
+      "deleteAfterRun": true,
+      "createdAtMs": 1778926121554,
+      "schedule": {
+        "kind": "at",
+        "at": "2026-05-16T10:08:47.000Z"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Voici de nouveaux mails. Pour chaque mail important, envoie un message avec openclaw message send --channel discord --target channel:1500624380286337185 contenant : Pourquoi c'est important, un R\u00e9sum\u00e9 (2-3 phrases), et l'Action sugg\u00e9r\u00e9e. Pour les mails pas importants (promos, spam, notifications), ne fais RIEN.\n\nMAIL 1: De:\"Th\u00e9au Pauwels\" <Theau.Pauwels@student.umons.ac.be> | Sujet:[urgent] Test webhook v6 | Contenu:\r\n\r\n\r\n\r\nTh\u00e9au Pauwels\r\n\r\nStudent\r\n\r\nStudent MA1 in telecommunication and sensing\r\n\r\n[https://ci3.googleusercontent.com/meips/ADKq_NY7uE6PBUYM_87nWow5cqHNNawY87sAExudj7wjk1Fktij6GmS04fy9yVbLBazCl7lbrIrQb_6JiNQ6POoPrh4LwlUsetTBsvUxzJQeaMlfZnOe1g=s0-d-e1-ft#https://signaturehound.com/api/v1/png/email/default/007bff.png]\r\n\r\ntheau.pauwels@<mailto:theau.pauwels@gmail.com>student.umons.ac.be\r\n\r\n[https://\n\nMAIL 2: De:\"Th\u00e9au Pauwels\" <Theau.Pauwels@student.umons.ac.be> | Sujet:Test webhook v5 | Contenu:\r\n\r\n\r\n\r\nTh\u00e9au Pauwels\r\n\r\nStudent\r\n\r\nStudent MA1 in telecommunication and sensing\r\n\r\n[https://ci3.googleusercontent.com/meips/ADKq_NY7uE6PBUYM_87nWow5cqHNNawY87sAExudj7wjk1Fktij6GmS04fy9yVbLBazCl7lbrIrQb_6JiNQ6POoPrh4LwlUsetTBsvUxzJQeaMlfZnOe1g=s0-d-e1-ft#https://signaturehound.com/api/v1/png/email/default/007bff.png]\r\n\r\ntheau.pauwels@<mailto:theau.pauwels@gmail.com>student.umons.ac.be\r\n\r\n[https://\n\nMAIL 3: De:\"Th\u00e9au Pauwels\" <Theau.Pauwels@student.umons.ac.be> | Sujet:Test webhook v4 | Contenu:\r\n\r\n\r\n\r\nTh\u00e9au Pauwels\r\n\r\nStudent\r\n\r\nStudent MA1 in telecommunication and sensing\r\n\r\n[https://ci3.googleusercontent.com/meips/ADKq_NY7uE6PBUYM_87nWow5cqHNNawY87sAExudj7wjk1Fktij6GmS04fy9yVbLBazCl7lbrIrQb_6JiNQ6POoPrh4LwlUsetTBsvUxzJQeaMlfZnOe1g=s0-d-e1-ft#https://signaturehound.com/api/v1/png/email/default/007bff.png]\r\n\r\ntheau.pauwels@<mailto:theau.pauwels@gmail.com>student.umons.ac.be\r\n\r\n[https://\n\nIMPORTANT: utilise 'channel:1500624380286337185' comme cible, pas juste le num\u00e9ro."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "last"
+      },
+      "state": {}
+    },
+    {
+      "id": "623f8f49-61ea-48c2-ab69-a20d5e3fc011",
+      "name": "Prix diesel quotidien",
+      "enabled": true,
+      "createdAtMs": 1778941772418,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 8 * * *",
+        "tz": "Europe/Brussels"
+      },
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Ex\u00e9cute la commande: bash /root/.local/bin/diesel-prices. Poste le r\u00e9sultat tel quel dans ce channel. N'ajoute rien, n'analyse rien, ne fais pas de web_fetch. Contente-toi d'ex\u00e9cuter le script et de poster sa sortie."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1504902914295074886"
+      },
+      "sessionTarget": "agent:meal",
+      "state": {}
+    },
+    {
+      "id": "38e17f7d-19df-4f70-a73e-0bed5ce96bb0",
+      "name": "mail-70e7fcb0",
+      "enabled": false,
+      "deleteAfterRun": true,
+      "createdAtMs": 1778951620514,
+      "schedule": {
+        "kind": "at",
+        "at": "2026-05-16T17:13:45.000Z"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Analyse ces nouveaux mails. Pour chaque mail IMPORTANT (action requise, urgence, acad\u00e9mique, s\u00e9curit\u00e9, deadline, personnel), \u00e9cris :\n\ud83d\udce5 Sujet\nPourquoi: [1 phrase]\nR\u00e9sum\u00e9: [2-3 phrases]\nAction: [quoi faire]\n\nPour les mails PAS importants (promos, spam, newsletters, notifications automatiques), ne poste RIEN.\nSi aucun mail important, ne r\u00e9ponds rien du tout.\n\nMAIL 1: Service Client IONOS <support@ionos.fr> | Votre serveur IONOS est pr\u00eat ! | Num\u00e9ro client : 308979806\r\n\r\nConnexion (https://login.ionos.fr)\r\n\r\nVotre serveur IONOS est pr\u00eat !\r\n\r\nBonjour Th\u00e9au Pauwels,\r\n\r\nNous avons le plaisir de vous annoncer que nous avons termin\u00e9 la configuration et l'installation de votre serveur My VPS pour le contrat 111960205. Vous pouvez d\u00e8s \u00e0 pr\u00e9sent vous connecter \u00e0 votre Cloud Panel (https://my.ionos.fr/server).\r\n\r\nAfin de vous faciliter l'instal\n\nMAIL 2: Uber Eats <ubereats@uber.com> | Relax in the backseat with 40% off your ride | <!doctype html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\">\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n<meta name=\"viewport\" content=\"width=device-width\">\n<!--[if !mso]><!-- -->\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n<!--<![endif]-->\n<!--[if gte mso 9]><xml>\n<o:O\n\nMAIL 3: Doccle <community@doccle.be> | Welcome to Doccle! | \r\n\t<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n\t<html xmlns=\"http://www.w3.org/1999/xhtml\">\r\n\t<head>\r\n\t\t<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\r\n\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\"/>\r\n\t\t<title>Welcome to Doccle!</title>"
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1500624380286337185"
+      },
+      "state": {}
+    },
+    {
+      "id": "79362d06-1100-4f2e-a422-1d309f6b3981",
+      "name": "Resume des news",
+      "enabled": true,
+      "createdAtMs": 1779226478586,
+      "schedule": {
+        "kind": "cron",
+        "expr": "15 7 * * *",
+        "tz": "Europe/Brussels"
+      },
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Execute /opt/openclaw-news/venv/bin/python3 /opt/openclaw-news/daily_summary.py et poste le resultat complet dans ce channel. N'ajoute rien d'autre."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "discord",
+        "to": "channel:1505268923334004948"
+      },
+      "sessionTarget": "agent:news",
       "state": {}
     }
   ]
