@@ -190,8 +190,9 @@
       "createdAtMs": 1778941772418,
       "schedule": {
         "kind": "cron",
-        "expr": "0 8 * * *",
-        "tz": "Europe/Brussels"
+        "expr": "50 6 * * *",
+        "tz": "Europe/Brussels",
+        "staggerMs": 540000
       },
       "wakeMode": "now",
       "payload": {
