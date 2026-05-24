@@ -26,6 +26,10 @@
   ];
 
   networking.networkmanager.enable = true;
+  networking.defaultGateway = {
+    address = "10.1.10.1";
+    interface = "ens18";
+  };
   networking.interfaces.ens18.ipv4.addresses = [
     { address = "10.1.10.123"; prefixLength = 24; }
   ];

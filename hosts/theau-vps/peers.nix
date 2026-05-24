@@ -36,7 +36,7 @@
   }
   {
     name = "seedbox-kot";
-    publicKey = "QAwl8Yaq8Ncq/8YiBvos+muSaZI6kPM/7Vga/B90VHg=";
+    publicKey = "pTPHLcyx2dh2gykKjljcOsbuNIoUfZlOHKAvV5S7GmM=";
     allowedIPs = [ "10.8.0.22/32" ];
   }
   {
