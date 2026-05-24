@@ -31,6 +31,15 @@ configuration fixes on three hosts.
 
 ## Root causes
 
+Each failure has a detailed standalone report:
+
+- [01 — storage-kot NAS permissions](./2026-05-24-01-storage-kot-nas-permissions.md)
+- [02 — Firewall `mkDefault` bug](./2026-05-24-02-firewall-mkdefault-bug.md)
+- [03 — seedbox-kot missing default route](./2026-05-24-03-seedbox-kot-default-route.md)
+- [04 — Gluetun WireGuard keys regenerated](./2026-05-24-04-gluetun-keys-regenerated.md)
+
+### Summary
+
 ### 1. storage-kot: `/srv/nas` filesystem permissions lost
 
 **Why:** After reboot, the data disk at `/srv/nas` (ext4, UUID
