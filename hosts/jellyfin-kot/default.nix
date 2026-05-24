@@ -60,9 +60,6 @@ in
   ];
 
   networking.networkmanager.enable = true;
-  networking.interfaces.ens18.ipv4.addresses = [
-    { address = "10.1.10.128"; prefixLength = 24; }
-  ];
   security.sudo.wheelNeedsPassword = false;
 
   personalInfra.networking.firewall = {

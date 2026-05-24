@@ -23,8 +23,8 @@ in
   config = lib.mkIf cfg.enable {
     networking.firewall = {
       enable = lib.mkDefault true;
-      allowedTCPPorts = lib.mkDefault cfg.allowedTCPPorts;
-      allowedUDPPorts = lib.mkDefault cfg.allowedUDPPorts;
+      allowedTCPPorts = cfg.allowedTCPPorts;
+      allowedUDPPorts = cfg.allowedUDPPorts;
     };
 
     # TODO: add nftables-specific policy once host routing boundaries are known.
