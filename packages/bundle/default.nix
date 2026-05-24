@@ -8,6 +8,10 @@
 let
   tcpPorts = lib.concatMapStringsSep ", " toString hostSpec.firewall.tcpPorts;
   udpPorts = lib.concatMapStringsSep ", " toString hostSpec.firewall.udpPorts;
+  portForwardRules = let
+    forwards = hostSpec.firewall.portForwards or [];
+  in lib.concatMapStringsSep "\n" (f: "        ${f.proto} dport ${toString f.port} dnat to ${f.destination}:${toString f.destPort}") forwards;
+  hasPortForwards = (builtins.length (hostSpec.firewall.portForwards or [])) > 0;
   peerEndpointAllowedIps = lib.concatStringsSep ", " hostSpec.wireguard.peerEndpointAllowedIps;
   publicPeerJson = builtins.toJSON hostSpec.wireguard.peers;
   serviceDomains =
@@ -91,7 +95,12 @@ let
     }
 
     table ip nat {
-      chain postrouting {
+      ${if hasPortForwards then ''
+      chain prerouting {
+        type nat hook prerouting priority -100; policy accept;
+${portForwardRules}
+      }
+      '' else ""}chain postrouting {
         type nat hook postrouting priority 100; policy accept;
         ip saddr ${hostSpec.wireguard.subnet} oifname "${hostSpec.publicInterface}" masquerade
       }

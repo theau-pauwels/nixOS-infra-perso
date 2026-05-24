@@ -52,6 +52,20 @@ in
       51820
       21116
     ];
+    portForwards = [
+      {
+        proto = "tcp";
+        port = 6881;
+        destination = "10.8.0.22";
+        destPort = 6881;
+      }
+      {
+        proto = "udp";
+        port = 6881;
+        destination = "10.8.0.22";
+        destPort = 6881;
+      }
+    ];
   };
 
   wireguard = {
