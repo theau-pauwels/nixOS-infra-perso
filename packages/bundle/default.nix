@@ -3,6 +3,7 @@
   pkgs,
   hostSpec,
   wgdashboard,
+  joal,
 }:
 
 let
@@ -693,7 +694,7 @@ ${portForwardRules}
       add_header X-Content-Type-Options nosniff always;
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
-      ${autheliaProtectedLocation "http://127.0.0.1:5082"}
+      ${autheliaProtectedLocation "http://127.0.0.1:8083"}
     }
   '';
 
@@ -1040,40 +1041,17 @@ ${portForwardRules}
   joalUnit = ''
     [Unit]
     Description=theau-vps JOAL
-    After=network-online.target theau-vps-wireguard.service mnt-storage\x2dkot\x2dnas.mount
-    Wants=network-online.target mnt-storage\x2dkot\x2dnas.mount
-    Requires=mnt-storage\x2dkot\x2dnas.mount
+    After=network-online.target theau-vps-wireguard.service
+    Wants=network-online.target
 
     [Service]
     Type=simple
     User=root
-    ExecStartPre=-/usr/bin/docker rm -f joal
-    ExecStartPre=/usr/bin/docker pull anthonyraymond/joal:latest
-    ExecStartPre=${pkgs.coreutils}/bin/install -d -m 0777 /var/lib/joal/config
-    ExecStart=/usr/bin/docker run --rm --name joal \
-      -p 127.0.0.1:5082:5082 \
-      -v /var/lib/joal/config:/data \
-      -v /mnt/storage-kot-nas/torrents/.joal:/data/torrents \
-      anthonyraymond/joal:latest --joal-conf=/data --server.port=5082
-    ExecStop=/usr/bin/docker stop joal
+    Environment=JOAL_CONF_DIR=/opt/theau-vps/state/joal
+    Environment=JOAL_PORT=8083
+    ExecStart=${joal}/bin/joal
     Restart=on-failure
     RestartSec=5
-
-    [Install]
-    WantedBy=multi-user.target
-  '';
-
-  joalCifsMount = ''
-    [Unit]
-    Description=Mount storage-kot NAS for JOAL torrents
-    After=network-online.target theau-vps-wireguard.service
-    Wants=network-online.target theau-vps-wireguard.service
-
-    [Mount]
-    What=//10.8.0.23/nas
-    Where=/mnt/storage-kot-nas
-    Type=cifs
-    Options=guest,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,noexec,nosuid,nodev,vers=3.1.1,_netdev
 
     [Install]
     WantedBy=multi-user.target
@@ -1313,10 +1291,6 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${joalUnit}
   EOF
 
-  cat > "$out/share/theau-vps/systemd/mnt-storage\x2dkot\x2dnas.mount" <<'EOF'
-  ${joalCifsMount}
-  EOF
-
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'
   ${certbotRenewService}
   EOF
@@ -1338,6 +1312,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   EOF
 
   ln -s ${wgdashboard} "$out/share/theau-vps/wgdashboard-package"
+  ln -s ${joal} "$out/share/theau-vps/joal-package"
   ln -s ${pkgs.nginx} "$out/share/theau-vps/nginx-package"
   ln -s ${pkgs.certbot} "$out/share/theau-vps/certbot-package"
   ln -s ${pkgs.nftables} "$out/share/theau-vps/nftables-package"
