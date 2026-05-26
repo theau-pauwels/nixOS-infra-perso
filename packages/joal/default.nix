@@ -35,7 +35,8 @@ stdenv.mkDerivation rec {
       --add-flags "-jar $out/share/joal/jack-of-all-trades-${version}.jar" \
       --add-flags "--joal-conf=\''${JOAL_CONF_DIR:-/var/lib/joal}" \
       --add-flags "--server.port=\''${JOAL_PORT:-5082}" \
-      --add-flags "--server.address=127.0.0.1"
+      --add-flags "--server.address=127.0.0.1" \
+      --add-flags "--joal.ui.path.prefix=\''${JOAL_UI_PATH}"
   '';
 
   meta = with lib; {

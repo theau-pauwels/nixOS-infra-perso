@@ -1049,6 +1049,7 @@ ${portForwardRules}
     User=root
     Environment=JOAL_CONF_DIR=/opt/theau-vps/state/joal
     Environment=JOAL_PORT=8083
+    Environment=JOAL_UI_PATH=joal-vps
     ExecStart=${joal}/bin/joal
     Restart=on-failure
     RestartSec=5
