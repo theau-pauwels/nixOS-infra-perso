@@ -1052,7 +1052,10 @@ ${portForwardRules}
     Environment=JOAL_CONF_DIR=/var/lib/joal
     Environment=JOAL_PORT=5082
     ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal
-    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal/conf
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal/torrents
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal/clients
+    ExecStartPre=+${pkgs.coreutils}/bin/cp -rn ${joal}/share/joal/clients/. /var/lib/joal/clients/ 2>/dev/null || true
+    ExecStartPre=+${pkgs.coreutils}/bin/chown -R joal:joal /var/lib/joal
     ExecStart=${joal}/bin/joal
     Restart=on-failure
     RestartSec=5
