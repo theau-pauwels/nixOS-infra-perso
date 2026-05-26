@@ -707,6 +707,11 @@ ${portForwardRules}
         proxy_set_header Connection "upgrade";
       }
 
+      # Fix JOAL hardcoded :80 port in WebSocket URL
+      sub_filter_types application/javascript text/javascript;
+      sub_filter_once off;
+      sub_filter ':80/joal-vps' '/joal-vps';
+
       # UI and API — Authelia-protected
       ${autheliaProtectedLocation "http://127.0.0.1:8080"}
     }
