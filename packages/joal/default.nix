@@ -37,6 +37,7 @@ stdenv.mkDerivation rec {
       --add-flags "--server.port=\''${JOAL_PORT:-8080}" \
       --add-flags "--server.address=127.0.0.1" \
       --add-flags "--spring.main.web-environment=true" \
+      --add-flags "--spring.profiles.active=default,web-environment" \
       --add-flags "--joal.ui.path.prefix=\''${JOAL_UI_PATH:-joal-vps}" \
       --add-flags "--joal.ui.secret-token=\''${JOAL_UI_SECRET:-}"
   '';
