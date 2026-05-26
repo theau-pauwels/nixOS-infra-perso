@@ -1321,6 +1321,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   EOF
 
   ln -s ${wgdashboard} "$out/share/theau-vps/wgdashboard-package"
+  ln -s ${joal} "$out/share/theau-vps/joal-package"
   ln -s ${pkgs.nginx} "$out/share/theau-vps/nginx-package"
   ln -s ${pkgs.certbot} "$out/share/theau-vps/certbot-package"
   ln -s ${pkgs.nftables} "$out/share/theau-vps/nftables-package"
