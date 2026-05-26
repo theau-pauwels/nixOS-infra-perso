@@ -698,6 +698,16 @@ ${portForwardRules}
         return 302 /joal-vps/ui/;
       }
 
+      # WebSocket endpoint — bypass Authelia (JOAL uses secret-token for STOMP auth)
+      location = /joal-vps {
+        ${proxyHeaders}
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+      }
+
+      # UI and API — Authelia-protected
       ${autheliaProtectedLocation "http://127.0.0.1:8080"}
     }
   '';
