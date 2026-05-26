@@ -198,6 +198,7 @@ ${portForwardRules}
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
     proxy_set_header X-Forwarded-Uri $request_uri;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection $connection_upgrade;
@@ -1054,6 +1055,7 @@ ${portForwardRules}
     ExecStart=/usr/bin/docker run --rm --name joal \
       -p 127.0.0.1:8080:8080 \
       -v /opt/theau-vps/state/joal:/data \
+      -v /opt/joal-patched.jar:/joal/joal.jar:ro \
       anthonyraymond/joal:latest \
       --joal-conf=/data \
       --spring.main.web-environment=true \
@@ -1061,7 +1063,8 @@ ${portForwardRules}
       --joal.ui.path.prefix=joal-vps \
       --joal.ui.secret-token=1234 \
       --server.port=8080 \
-      --server.address=0.0.0.0
+      --server.address=0.0.0.0 \
+      --server.forward-headers-strategy=framework
     ExecStop=/usr/bin/docker stop joal
     Restart=on-failure
     RestartSec=5

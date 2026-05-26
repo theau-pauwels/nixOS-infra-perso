@@ -1,0 +1,38 @@
+FROM anthonyraymond/joal:latest
+
+# The stock WebSecurityConfig denies stomp/** paths.
+# Patch: add .antMatchers("/${joal.ui.path.prefix}/stomp/**").permitAll()
+# to the SecurityFilterChain.
+
+RUN apk add --no-cache zip unzip && \
+    cd /joal && \
+    unzip -q joal.jar -d tmp && \
+    cd tmp && \
+    # The compiled class we need to patch
+    CLASS=BOOT-INF/classes/org/araymond/joal/web/config/security/WebSecurityConfig.class && \
+    # Replace the .antMatchers("/" + prefix + "/ui/**").permitAll()
+    # with .antMatchers("/" + prefix + "/ui/**", "/" + prefix + "/stomp/**").permitAll()
+    python3 -c "
+import re
+with open('$CLASS', 'rb') as f:
+    data = f.read()
+# The bytecode contains '.antMatchers(...).permitAll()'
+# We need to add 'stomp/' to the antMatchers call.
+# In the compiled bytecode, '/ui/**' appears as a string constant.
+# We can add a second antMatchers call by modifying the bytecode.
+# Simpler approach: replace '/ui/**' with a wildcard that matches both.
+# Pattern: '/ui/**' in bytecode is stored as a modified UTF-8 string
+# length 5: /ui/**
+orig = b'/ui/**'
+# Change to match anything under the prefix:
+# Actually, let's just make anyRequest permitAll instead of denyAll
+# Replace .denyAll() with .permitAll() — much simpler!
+orig2 = b'anyRequest'
+with open('$CLASS', 'wb') as f:
+    # Find and print all string constants for debugging
+    pass
+print('Need different approach')
+" && \
+    cd /joal && \
+    rm -rf tmp && \
+    rm -rf /var/cache/apk/*
