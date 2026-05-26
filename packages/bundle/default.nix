@@ -1056,7 +1056,7 @@ ${portForwardRules}
     Environment=JOAL_PORT=8080
     Environment=JOAL_UI_PATH=joal-vps
     Environment=JOAL_UI_SECRET=1234
-    ExecStart=${joal}/bin/joal --spring.security.websocket.enabled=false
+    ExecStart=${joal}/bin/joal
     Restart=on-failure
     RestartSec=5
 
