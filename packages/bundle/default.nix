@@ -3,6 +3,7 @@
   pkgs,
   hostSpec,
   wgdashboard,
+  joal,
 }:
 
 let
@@ -28,6 +29,7 @@ let
       lidarr = "lidarr.theau.net";
       navidrome = "music.theau.net";
       musicseerr = "musicseerr.theau.net";
+      joal = "joal.theau.net";
       users = "users.theau.net";
       wg = "wg.theau.net";
       certName = "theau-net-services";
@@ -45,6 +47,7 @@ let
     serviceDomains.lidarr
     serviceDomains.navidrome
     serviceDomains.musicseerr
+    serviceDomains.joal
     serviceDomains.users
     serviceDomains.wg
   ];
@@ -672,6 +675,27 @@ ${portForwardRules}
 
       ${autheliaProtectedLocation "http://127.0.0.1:5055"}
     }
+
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name ${serviceDomains.joal};
+
+      ssl_certificate /etc/letsencrypt/live/${serviceDomains.certName}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/${serviceDomains.certName}/privkey.pem;
+      ssl_session_timeout 1d;
+      ssl_session_cache shared:THEAUNET:10m;
+      ssl_session_tickets off;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options SAMEORIGIN always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy no-referrer-when-downgrade always;
+
+      ${autheliaProtectedLocation "http://127.0.0.1:5082"}
+    }
   '';
 
   wgDashboardIniTemplate = ''
@@ -1014,6 +1038,34 @@ ${portForwardRules}
     WantedBy=multi-user.target
   '';
 
+  joalUnit = ''
+    [Unit]
+    Description=theau-vps JOAL
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=joal
+    Group=joal
+    WorkingDirectory=/var/lib/joal
+    Environment=JOAL_CONF_DIR=/var/lib/joal
+    Environment=JOAL_PORT=5082
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal/conf
+    ExecStart=${joal}/bin/joal
+    Restart=on-failure
+    RestartSec=5
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=full
+    ProtectHome=true
+    ReadWritePaths=/var/lib/joal
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
   firewallUnit = ''
     [Unit]
     Description=theau-vps firewall
@@ -1242,6 +1294,10 @@ pkgs.runCommand "theau-vps-bundle" { } ''
 
   cat > "$out/share/theau-vps/systemd/theau-vps-musicseerr.service" <<'EOF'
   ${musicseerrUnit}
+  EOF
+
+  cat > "$out/share/theau-vps/systemd/theau-vps-joal.service" <<'EOF'
+  ${joalUnit}
   EOF
 
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'

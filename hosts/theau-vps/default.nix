@@ -23,6 +23,7 @@ in
     lidarr = "lidarr.theau.net";
     navidrome = "music.theau.net";
     musicseerr = "musicseerr.theau.net";
+    joal = "joal.theau.net";
     users = "users.theau.net";
     wg = "wg.theau.net";
     certName = "theau-net-services";

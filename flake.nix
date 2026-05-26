@@ -30,8 +30,9 @@
         wgdashboard = pkgs.callPackage ./packages/wgdashboard {
           src = wgdashboard-src;
         };
+        joal = pkgs.callPackage ./packages/joal { };
         theauVpsBundle = pkgs.callPackage ./packages/bundle {
-          inherit hostSpec wgdashboard;
+          inherit hostSpec wgdashboard joal;
         };
         mkHostTarball =
           hostName:
@@ -72,7 +73,7 @@
         formatter = pkgs.nixfmt-rfc-style;
 
         packages = {
-          inherit wgdashboard;
+          inherit wgdashboard joal;
           theau-vps-bundle = theauVpsBundle;
           jellyfin-kot = jellyfinKotTarball;
           seedbox-kot = seedboxKotTarball;
