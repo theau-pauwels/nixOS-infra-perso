@@ -1040,9 +1040,9 @@ ${portForwardRules}
   joalUnit = ''
     [Unit]
     Description=theau-vps JOAL
-    After=network-online.target theau-vps-wireguard.service 'mnt-storage\x2dkot\x2dnas.mount'
-    Wants=network-online.target 'mnt-storage\x2dkot\x2dnas.mount'
-    Requires='mnt-storage\x2dkot\x2dnas.mount'
+    After=network-online.target theau-vps-wireguard.service mnt-storage\x2dkot\x2dnas.mount
+    Wants=network-online.target mnt-storage\x2dkot\x2dnas.mount
+    Requires=mnt-storage\x2dkot\x2dnas.mount
 
     [Service]
     Type=simple
