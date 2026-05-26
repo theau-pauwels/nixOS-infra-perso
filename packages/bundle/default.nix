@@ -707,13 +707,6 @@ ${portForwardRules}
         proxy_set_header Connection "upgrade";
       }
 
-      # Fix JOAL hardcoded :80 port in WebSocket URL
-      gunzip on;
-      proxy_set_header Accept-Encoding "";
-      sub_filter_types application/javascript text/javascript;
-      sub_filter_once off;
-      sub_filter '"80"' 'window.location.protocol==="https:"?"443":"80"';
-
       # UI and API — Authelia-protected
       ${autheliaProtectedLocation "http://127.0.0.1:8080"}
     }
@@ -1070,7 +1063,7 @@ ${portForwardRules}
     User=root
     ExecStartPre=-/usr/bin/docker rm -f joal
     ExecStart=/usr/bin/docker run --rm --name joal \
-      -p 127.0.0.1:8080:8080 \
+      --network host \
       -v /opt/theau-vps/state/joal:/data \
       -v /opt/joal-patched.jar:/joal/joal.jar:ro \
       anthonyraymond/joal:latest \
@@ -1080,7 +1073,7 @@ ${portForwardRules}
       --joal.ui.path.prefix=joal-vps \
       --joal.ui.secret-token=1234 \
       --server.port=8080 \
-      --server.address=0.0.0.0 \
+      --server.address=127.0.0.1 \
       --server.forward-headers-strategy=framework
     ExecStop=/usr/bin/docker stop joal
     Restart=on-failure
