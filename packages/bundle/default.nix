@@ -709,6 +709,7 @@ ${portForwardRules}
 
       # Fix JOAL hardcoded :80 port in WebSocket URL
       gunzip on;
+      proxy_set_header Accept-Encoding "";
       sub_filter_types application/javascript text/javascript;
       sub_filter_once off;
       sub_filter '"80"' 'window.location.protocol==="https:"?"443":"80"';
