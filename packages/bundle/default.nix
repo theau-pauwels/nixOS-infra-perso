@@ -708,6 +708,7 @@ ${portForwardRules}
       }
 
       # Fix JOAL hardcoded :80 port in WebSocket URL
+      gunzip on;
       sub_filter_types application/javascript text/javascript;
       sub_filter_once off;
       sub_filter ':80/joal-vps' '/joal-vps';
