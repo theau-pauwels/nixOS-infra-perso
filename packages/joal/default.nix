@@ -32,7 +32,7 @@ stdenv.mkDerivation rec {
     cp -r config "$out/share/joal/" 2>/dev/null || true
 
     makeWrapper "${jre}/bin/java" "$out/bin/joal" \
-      --add-flags "-jar $out/share/joal/joal.jar" \
+      --add-flags "-jar $out/share/joal/jack-of-all-trades-${version}.jar" \
       --add-flags "--joal-conf=\''${JOAL_CONF_DIR:-/var/lib/joal}" \
       --add-flags "--server.port=\''${JOAL_PORT:-5082}" \
       --add-flags "--server.address=127.0.0.1"
