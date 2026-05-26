@@ -1,5 +1,9 @@
 # Phase 8 — Personal Secretary
 
+> **Status: Replaced by OpenClaw** (2026-05-05).
+> The standalone Python implementation in `services/personal-secretary/` has been
+> removed in favor of OpenClaw. This phase document is kept for historical context.
+
 ## Context
 
 Add a lightweight personal secretary service (`personal-secretary`) on

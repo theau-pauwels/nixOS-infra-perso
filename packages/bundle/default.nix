@@ -1040,9 +1040,9 @@ ${portForwardRules}
   joalUnit = ''
     [Unit]
     Description=theau-vps JOAL
-    After=network-online.target theau-vps-wireguard.service mnt-storage\x2dkot\x2dnas.mount
-    Wants=network-online.target mnt-storage\x2dkot\x2dnas.mount
-    Requires=mnt-storage\x2dkot\x2dnas.mount
+    After=network-online.target theau-vps-wireguard.service 'mnt-storage\x2dkot\x2dnas.mount'
+    Wants=network-online.target 'mnt-storage\x2dkot\x2dnas.mount'
+    Requires='mnt-storage\x2dkot\x2dnas.mount'
 
     [Service]
     Type=simple
@@ -1313,7 +1313,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${joalUnit}
   EOF
 
-  cat > "$out/share/theau-vps/systemd/mnt-storage-kot-nas.mount" <<'EOF'
+  cat > "$out/share/theau-vps/systemd/mnt-storage\x2dkot\x2dnas.mount" <<'EOF'
   ${joalCifsMount}
   EOF
 
