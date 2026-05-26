@@ -698,13 +698,7 @@ ${portForwardRules}
         return 302 /joal-vps/ui/;
       }
 
-      # API, WebSocket, static resources — bypass Authelia (JOAL has its own secret token)
-      location /joal-vps/ {
-        ${proxyHeaders}
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass http://127.0.0.1:8080;
-      }
+      ${autheliaProtectedLocation "http://127.0.0.1:8080"}
     }
   '';
 
