@@ -711,7 +711,7 @@ ${portForwardRules}
       gunzip on;
       sub_filter_types application/javascript text/javascript;
       sub_filter_once off;
-      sub_filter ':80/joal-vps' '/joal-vps';
+      sub_filter 'port:window.location.port||"80"' 'port:window.location.port||""';
 
       # UI and API — Authelia-protected
       ${autheliaProtectedLocation "http://127.0.0.1:8080"}
