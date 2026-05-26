@@ -694,7 +694,7 @@ ${portForwardRules}
       add_header X-Content-Type-Options nosniff always;
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
-      ${autheliaProtectedLocation "http://127.0.0.1:8083"}
+      ${autheliaProtectedLocation "http://127.0.0.1:8080"}
     }
   '';
 
@@ -1047,9 +1047,11 @@ ${portForwardRules}
     [Service]
     Type=simple
     User=root
+    WorkingDirectory=/opt/theau-vps/state/joal
     Environment=JOAL_CONF_DIR=/opt/theau-vps/state/joal
-    Environment=JOAL_PORT=8083
+    Environment=JOAL_PORT=8080
     Environment=JOAL_UI_PATH=joal-vps
+    Environment=JOAL_UI_SECRET=1234
     ExecStart=${joal}/bin/joal
     Restart=on-failure
     RestartSec=5

@@ -34,9 +34,11 @@ stdenv.mkDerivation rec {
     makeWrapper "${jre}/bin/java" "$out/bin/joal" \
       --add-flags "-jar $out/share/joal/jack-of-all-trades-${version}.jar" \
       --add-flags "--joal-conf=\''${JOAL_CONF_DIR:-/var/lib/joal}" \
-      --add-flags "--server.port=\''${JOAL_PORT:-5082}" \
+      --add-flags "--server.port=\''${JOAL_PORT:-8080}" \
       --add-flags "--server.address=127.0.0.1" \
-      --add-flags "--joal.ui.path.prefix=\''${JOAL_UI_PATH}"
+      --add-flags "--spring.main.web-environment=true" \
+      --add-flags "--joal.ui.path.prefix=\''${JOAL_UI_PATH:-joal-vps}" \
+      --add-flags "--joal.ui.secret-token=\''${JOAL_UI_SECRET:-}"
   '';
 
   meta = with lib; {
