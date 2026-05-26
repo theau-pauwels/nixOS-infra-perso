@@ -769,7 +769,9 @@ systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
 systemctl restart docker
+systemctl restart mnt-storage\\x2dkot\\x2dnas.mount || true
 systemctl restart theau-vps-lldap.service
+systemctl restart theau-vps-joal.service
 
 for _ in {1..30}; do
   if "$BUNDLE_ROOT/share/theau-vps/lldap-package/bin/lldap" healthcheck --config-file "$LLDAP_CONFIG_FILE" >/dev/null 2>&1; then
