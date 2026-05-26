@@ -1056,6 +1056,7 @@ ${portForwardRules}
     Environment=JOAL_PORT=8080
     Environment=JOAL_UI_PATH=joal-vps
     Environment=JOAL_UI_SECRET=1234
+    Environment=JAVA_TOOL_OPTIONS=-Dhttp.nonProxyHosts="localhost|127.*|10.*|192.168.*"
     ExecStart=${joal}/bin/joal
     Restart=on-failure
     RestartSec=5
