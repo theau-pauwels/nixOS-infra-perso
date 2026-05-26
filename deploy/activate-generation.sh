@@ -259,13 +259,6 @@ if ! id -u musicseerr >/dev/null 2>&1; then
   useradd --system --gid musicseerr --home-dir /var/lib/musicseerr --shell /usr/sbin/nologin --no-create-home musicseerr
 fi
 
-if ! getent group joal >/dev/null; then
-  groupadd --system joal
-fi
-if ! id -u joal >/dev/null 2>&1; then
-  useradd --system --gid joal --home-dir /var/lib/joal --shell /usr/sbin/nologin --no-create-home joal
-fi
-
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia
 install -d -o authelia -g authelia -m 0750 /opt/theau-vps/state/authelia/assets
 install -d -o lldap -g lldap -m 0750 /opt/theau-vps/state/lldap
@@ -275,6 +268,8 @@ install -d -o sonarr -g sonarr -m 0750 /opt/theau-vps/state/sonarr /var/lib/sona
 install -d -o radarr -g radarr -m 0750 /opt/theau-vps/state/radarr /var/lib/radarr
 install -d -o lidarr -g lidarr -m 0750 /opt/theau-vps/state/lidarr /var/lib/lidarr
 install -d -o navidrome -g navidrome -m 0750 /var/lib/navidrome
+install -d -m 0755 /mnt/storage-kot-nas
+install -d -m 0755 /var/lib/joal/config
 install -d -o musicseerr -g musicseerr -m 0750 /var/lib/musicseerr
 
 AUTHELIA_STATE="/opt/theau-vps/state/authelia"
@@ -731,6 +726,7 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-lidarr.service" /etc/systemd/
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-navidrome.service" /etc/systemd/system/theau-vps-navidrome.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-musicseerr.service" /etc/systemd/system/theau-vps-musicseerr.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-joal.service" /etc/systemd/system/theau-vps-joal.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/mnt-storage-kot-nas.mount" /etc/systemd/system/mnt-storage-kot-nas.mount
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
@@ -767,8 +763,8 @@ PY
 sysctl --system >/dev/null
 /usr/sbin/sshd -t
 systemctl daemon-reload
-systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
-systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service mnt-storage-kot-nas.mount theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service mnt-storage-kot-nas.mount theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service

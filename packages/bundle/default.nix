@@ -3,7 +3,6 @@
   pkgs,
   hostSpec,
   wgdashboard,
-  joal,
 }:
 
 let
@@ -1041,29 +1040,40 @@ ${portForwardRules}
   joalUnit = ''
     [Unit]
     Description=theau-vps JOAL
-    After=network-online.target
-    Wants=network-online.target
+    After=network-online.target theau-vps-wireguard.service mnt-storage\x2dkot\x2dnas.mount
+    Wants=network-online.target mnt-storage\x2dkot\x2dnas.mount
+    Requires=mnt-storage\x2dkot\x2dnas.mount
 
     [Service]
     Type=simple
-    User=joal
-    Group=joal
-    WorkingDirectory=/var/lib/joal
-    Environment=JOAL_CONF_DIR=/var/lib/joal
-    Environment=JOAL_PORT=5082
-    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal
-    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal/torrents
-    ExecStartPre=${pkgs.coreutils}/bin/install -d -o joal -g joal -m 0750 /var/lib/joal/clients
-    ExecStartPre=+${pkgs.coreutils}/bin/cp -rn ${joal}/share/joal/clients/. /var/lib/joal/clients/ 2>/dev/null || true
-    ExecStartPre=+${pkgs.coreutils}/bin/chown -R joal:joal /var/lib/joal
-    ExecStart=${joal}/bin/joal
+    User=root
+    ExecStartPre=-/usr/bin/docker rm -f joal
+    ExecStartPre=/usr/bin/docker pull anthonyraymond/joal:latest
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -m 0750 /var/lib/joal/config
+    ExecStart=/usr/bin/docker run --rm --name joal \
+      -p 127.0.0.1:5082:5082 \
+      -v /var/lib/joal/config:/data/config \
+      -v /mnt/storage-kot-nas/torrents/.joal:/data/torrents \
+      anthonyraymond/joal:latest
+    ExecStop=/usr/bin/docker stop joal
     Restart=on-failure
     RestartSec=5
-    NoNewPrivileges=yes
-    PrivateTmp=yes
-    ProtectSystem=full
-    ProtectHome=true
-    ReadWritePaths=/var/lib/joal
+
+    [Install]
+    WantedBy=multi-user.target
+  '';
+
+  joalCifsMount = ''
+    [Unit]
+    Description=Mount storage-kot NAS for JOAL torrents
+    After=network-online.target theau-vps-wireguard.service
+    Wants=network-online.target theau-vps-wireguard.service
+
+    [Mount]
+    What=//10.8.0.23/nas
+    Where=/mnt/storage-kot-nas
+    Type=cifs
+    Options=guest,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,noexec,nosuid,nodev,vers=3.1.1,_netdev
 
     [Install]
     WantedBy=multi-user.target
@@ -1303,6 +1313,10 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${joalUnit}
   EOF
 
+  cat > "$out/share/theau-vps/systemd/mnt-storage-kot-nas.mount" <<'EOF'
+  ${joalCifsMount}
+  EOF
+
   cat > "$out/share/theau-vps/systemd/theau-vps-certbot-renew.service" <<'EOF'
   ${certbotRenewService}
   EOF
@@ -1324,7 +1338,6 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   EOF
 
   ln -s ${wgdashboard} "$out/share/theau-vps/wgdashboard-package"
-  ln -s ${joal} "$out/share/theau-vps/joal-package"
   ln -s ${pkgs.nginx} "$out/share/theau-vps/nginx-package"
   ln -s ${pkgs.certbot} "$out/share/theau-vps/certbot-package"
   ln -s ${pkgs.nftables} "$out/share/theau-vps/nftables-package"

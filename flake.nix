@@ -32,7 +32,7 @@
         };
         joal = pkgs.callPackage ./packages/joal { };
         theauVpsBundle = pkgs.callPackage ./packages/bundle {
-          inherit hostSpec wgdashboard joal;
+          inherit hostSpec wgdashboard;
         };
         mkHostTarball =
           hostName:
