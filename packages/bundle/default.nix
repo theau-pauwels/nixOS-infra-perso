@@ -3,7 +3,6 @@
   pkgs,
   hostSpec,
   wgdashboard,
-  joal,
 }:
 
 let
@@ -1051,13 +1050,19 @@ ${portForwardRules}
     [Service]
     Type=simple
     User=root
-    WorkingDirectory=/opt/theau-vps/state/joal
-    Environment=JOAL_CONF_DIR=/opt/theau-vps/state/joal
-    Environment=JOAL_PORT=8080
-    Environment=JOAL_UI_PATH=joal-vps
-    Environment=JOAL_UI_SECRET=1234
-    Environment=JAVA_TOOL_OPTIONS=-Dhttp.nonProxyHosts="localhost|127.*|10.*|192.168.*"
-    ExecStart=${joal}/bin/joal
+    ExecStartPre=-/usr/bin/docker rm -f joal
+    ExecStart=/usr/bin/docker run --rm --name joal \
+      -p 127.0.0.1:8080:8080 \
+      -v /opt/theau-vps/state/joal:/data \
+      anthonyraymond/joal:latest \
+      --joal-conf=/data \
+      --spring.main.web-environment=true \
+      --spring.profiles.active=default,web-environment \
+      --joal.ui.path.prefix=joal-vps \
+      --joal.ui.secret-token=1234 \
+      --server.port=8080 \
+      --server.address=0.0.0.0
+    ExecStop=/usr/bin/docker stop joal
     Restart=on-failure
     RestartSec=5
 
@@ -1320,7 +1325,6 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   EOF
 
   ln -s ${wgdashboard} "$out/share/theau-vps/wgdashboard-package"
-  ln -s ${joal} "$out/share/theau-vps/joal-package"
   ln -s ${pkgs.nginx} "$out/share/theau-vps/nginx-package"
   ln -s ${pkgs.certbot} "$out/share/theau-vps/certbot-package"
   ln -s ${pkgs.nftables} "$out/share/theau-vps/nftables-package"

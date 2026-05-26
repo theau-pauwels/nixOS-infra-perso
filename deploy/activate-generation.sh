@@ -765,6 +765,7 @@ systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service th
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
+systemctl restart docker
 systemctl restart theau-vps-lldap.service
 
 for _ in {1..30}; do
