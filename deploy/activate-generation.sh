@@ -726,7 +726,7 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-lidarr.service" /etc/systemd/
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-navidrome.service" /etc/systemd/system/theau-vps-navidrome.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-musicseerr.service" /etc/systemd/system/theau-vps-musicseerr.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-joal.service" /etc/systemd/system/theau-vps-joal.service
-cp "$BUNDLE_ROOT/share/theau-vps/systemd/mnt-storage\x2dkot\x2dnas.mount" /etc/systemd/system/mnt-storage\x2dkot\x2dnas.mount
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/mnt-storage\\x2dkot\\x2dnas.mount" /etc/systemd/system/mnt-storage\\x2dkot\\x2dnas.mount
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
