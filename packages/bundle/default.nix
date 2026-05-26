@@ -1049,12 +1049,12 @@ ${portForwardRules}
     User=root
     ExecStartPre=-/usr/bin/docker rm -f joal
     ExecStartPre=/usr/bin/docker pull anthonyraymond/joal:latest
-    ExecStartPre=${pkgs.coreutils}/bin/install -d -m 0750 /var/lib/joal/config
+    ExecStartPre=${pkgs.coreutils}/bin/install -d -m 0777 /var/lib/joal/config
     ExecStart=/usr/bin/docker run --rm --name joal \
       -p 127.0.0.1:5082:5082 \
-      -v /var/lib/joal/config:/data/config \
+      -v /var/lib/joal/config:/data \
       -v /mnt/storage-kot-nas/torrents/.joal:/data/torrents \
-      anthonyraymond/joal:latest
+      anthonyraymond/joal:latest --joal-conf=/data --server.port=5082
     ExecStop=/usr/bin/docker stop joal
     Restart=on-failure
     RestartSec=5

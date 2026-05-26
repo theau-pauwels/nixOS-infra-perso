@@ -269,7 +269,7 @@ install -d -o radarr -g radarr -m 0750 /opt/theau-vps/state/radarr /var/lib/rada
 install -d -o lidarr -g lidarr -m 0750 /opt/theau-vps/state/lidarr /var/lib/lidarr
 install -d -o navidrome -g navidrome -m 0750 /var/lib/navidrome
 install -d -m 0755 /mnt/storage-kot-nas
-install -d -m 0755 /var/lib/joal/config
+install -d -m 0777 /var/lib/joal/config
 install -d -o musicseerr -g musicseerr -m 0750 /var/lib/musicseerr
 
 AUTHELIA_STATE="/opt/theau-vps/state/authelia"
