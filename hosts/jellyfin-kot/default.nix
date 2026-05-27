@@ -60,6 +60,13 @@ in
   ];
 
   networking.networkmanager.enable = true;
+  networking.defaultGateway = {
+    address = "10.224.20.1";
+    interface = "ens18";
+  };
+  networking.interfaces.ens18.ipv4.addresses = [
+    { address = "10.224.20.21"; prefixLength = 24; }
+  ];
   security.sudo.wheelNeedsPassword = false;
 
   personalInfra.networking.firewall = {
