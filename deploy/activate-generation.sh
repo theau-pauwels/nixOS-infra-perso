@@ -269,6 +269,7 @@ install -d -o radarr -g radarr -m 0750 /opt/theau-vps/state/radarr /var/lib/rada
 install -d -o lidarr -g lidarr -m 0750 /opt/theau-vps/state/lidarr /var/lib/lidarr
 install -d -o navidrome -g navidrome -m 0750 /var/lib/navidrome
 install -d -o musicseerr -g musicseerr -m 0750 /var/lib/musicseerr
+install -d -m 0755 /mnt/storage-kot-nas
 
 AUTHELIA_STATE="/opt/theau-vps/state/authelia"
 AUTHELIA_PASSWORD_FILE="$AUTHELIA_STATE/admin-password"
@@ -724,6 +725,7 @@ cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-lidarr.service" /etc/systemd/
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-navidrome.service" /etc/systemd/system/theau-vps-navidrome.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-musicseerr.service" /etc/systemd/system/theau-vps-musicseerr.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-joal.service" /etc/systemd/system/theau-vps-joal.service
+cp "$BUNDLE_ROOT/share/theau-vps/systemd/mnt-storage\x2dkot\x2dnas.mount" /etc/systemd/system/mnt-storage\x2dkot\x2dnas.mount
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.service" /etc/systemd/system/theau-vps-certbot-renew.service
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-certbot-renew.timer" /etc/systemd/system/theau-vps-certbot-renew.timer
 cp "$BUNDLE_ROOT/share/theau-vps/systemd/theau-vps-iperf3.service" /etc/systemd/system/theau-vps-iperf3.service
@@ -760,8 +762,8 @@ PY
 sysctl --system >/dev/null
 /usr/sbin/sshd -t
 systemctl daemon-reload
-systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
-systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
+systemctl enable theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service mnt-storage\x2dkot\x2dnas.mount theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null
+systemctl reset-failed theau-vps-firewall.service theau-vps-wireguard.service theau-vps-nginx.service theau-vps-wgdashboard.service theau-vps-authelia.service theau-vps-lldap.service theau-vps-prowlarr.service theau-vps-seerr.service theau-vps-sonarr.service theau-vps-radarr.service theau-vps-lidarr.service theau-vps-navidrome.service theau-vps-musicseerr.service theau-vps-joal.service mnt-storage\x2dkot\x2dnas.mount theau-vps-certbot-renew.timer theau-vps-iperf3.service theau-vps-rustdesk-hbbs.service theau-vps-rustdesk-hbbr.service >/dev/null || true
 systemctl restart ssh
 systemctl restart theau-vps-firewall.service
 systemctl restart theau-vps-wireguard.service
