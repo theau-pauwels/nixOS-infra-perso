@@ -1069,6 +1069,7 @@ ${portForwardRules}
     ExecStartPre=-/usr/bin/docker rm -f joal
     ExecStart=/usr/bin/docker run --rm --name joal \
       --network host \
+      --dns 1.1.1.1 \
       -v /opt/theau-vps/state/joal:/data \
       -v /opt/joal-patched.jar:/joal/joal.jar:ro \
       -v /mnt/storage-kot-nas/torrents/joal:/data/torrents:shared \
