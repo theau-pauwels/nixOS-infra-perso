@@ -74,6 +74,22 @@
   services.qemuGuest.enable = true;
   services.fstrim.enable = true;
 
+  systemd.services.fix-nas-perms = {
+    description = "Fix /srv/nas permissions";
+    after = [ "srv-nas.mount" ];
+    requires = [ "srv-nas.mount" ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      chmod -R 0777 /srv/nas
+    '';
+  };
+
+  systemd.timers.fix-nas-perms = {
+    description = "Fix /srv/nas permissions every hour";
+    timerConfig.OnCalendar = "hourly";
+    wantedBy = [ "timers.target" ];
+  };
+
   boot.growPartition = true;
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
