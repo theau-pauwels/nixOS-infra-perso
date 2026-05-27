@@ -11,6 +11,9 @@ let
   portForwardRules = let
     forwards = hostSpec.firewall.portForwards or [];
   in lib.concatMapStringsSep "\n" (f: "        ${f.proto} dport ${toString f.port} dnat to ${f.destination}:${toString f.destPort}") forwards;
+  portForwardRulesFwd = let
+    forwards = hostSpec.firewall.portForwards or [];
+  in lib.concatMapStringsSep "\n" (f: "        ${f.proto} dport ${toString f.port} accept") forwards;
   hasPortForwards = (builtins.length (hostSpec.firewall.portForwards or [])) > 0;
   peerEndpointAllowedIps = lib.concatStringsSep ", " hostSpec.wireguard.peerEndpointAllowedIps;
   publicPeerJson = builtins.toJSON hostSpec.wireguard.peers;
@@ -93,6 +96,7 @@ let
         ct state established,related accept
         iifname "${hostSpec.wireguard.interface}" accept
         oifname "${hostSpec.wireguard.interface}" accept
+${portForwardRulesFwd}
       }
     }
 
