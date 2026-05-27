@@ -37,6 +37,7 @@ The target architecture is documented in:
 - [`docs/implementation/dad-edge.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/dad-edge.md)
 - [`docs/implementation/smtp.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/smtp.md)
 - [`docs/implementation/git-selfhosted.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/git-selfhosted.md)
+- [`docs/implementation/joal.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/joal.md)
 - [`docs/implementation/wiki-offline.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/wiki-offline.md)
 - [`docs/implementation/prowlarr.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/prowlarr.md)
 - [`docs/implementation/coolify-paas.md`](/home/theau/Documents/vscode/NixOS-migration/docs/implementation/coolify-paas.md)
@@ -103,10 +104,11 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
 - MusicSeerr on `127.0.0.1:5056` (music request UI, connects Lidarr + Navidrome)
 - Seerr on `127.0.0.1:5055`
 - public vhosts for `authelia.theau.net`, `coolify.theau.net`,
-  `file.theau.net`, `jellyfin.theau.net`, `lidarr.theau.net`,
-  `music.theau.net`, `musicseerr.theau.net`, `prowlarr.theau.net`,
-  `qbit.theau.net`, `radarr.theau.net`, `seer.theau.net`,
-  `sonarr.theau.net`, `users.theau.net`, and `wg.theau.net`
+  `file.theau.net`, `jellyfin.theau.net`, `joal.theau.net`,
+  `lidarr.theau.net`, `music.theau.net`, `musicseerr.theau.net`,
+  `prowlarr.theau.net`, `qbit.theau.net`, `radarr.theau.net`,
+  `seer.theau.net`, `sonarr.theau.net`, `users.theau.net`,
+  and `wg.theau.net`
 - Authelia group policies backed by LLDAP (`wg-admin` for WGDashboard,
   `paas-admins` for Coolify, `admins`/`media-admins`/`media-users` for
   qBittorrent/Jellyfin/Seerr/FileBrowser, `admins` for administration)
@@ -114,6 +116,8 @@ infrastructure deployment commands unless you intend to mutate the live VPS.
   header) — serves `/srv/nas` from storage-kot
 - Samba shares on storage-kot: `jellyfin` (media) and `downloads` (seedbox),
   mounted via CIFS on jellyfin-kot and seedbox-kot
+- JOAL torrent ratio booster on `joal.theau.net` (Docker, patched JAR),
+  watches torrents from `seedbox-kot:/srv/nas/torrents/joal`
 - a default Nginx vhost returning 404 for unlisted hostnames
 - nftables firewall
 - iperf3
