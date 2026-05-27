@@ -181,7 +181,7 @@ XML
   boot.loader.efi.canTouchEfiVariables = true;
 
   fileSystems."/srv/nas" = {
-    device = "//10.1.10.124/nas";
+    device = "//10.224.20.10/nas";
     fsType = "cifs";
     options = [
       "guest"
