@@ -26,6 +26,7 @@
   ];
 
   networking.networkmanager.enable = true;
+  networking.nameservers = [ "10.224.20.1" ];
   security.sudo.wheelNeedsPassword = false;
 
   personalInfra.networking.firewall = {
