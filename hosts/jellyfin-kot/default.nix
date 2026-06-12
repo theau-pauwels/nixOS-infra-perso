@@ -186,10 +186,13 @@ XML
     fsType = "cifs";
     options = [
       "guest"
-      "uid=1000"
-      "gid=1000"
+      "uid=999"
+      "gid=999"
+      "forceuid"
+      "forcegid"
       "file_mode=0664"
       "dir_mode=0775"
+      "noperm"
       "hard"
       "rsize=1048576"
       "wsize=1048576"

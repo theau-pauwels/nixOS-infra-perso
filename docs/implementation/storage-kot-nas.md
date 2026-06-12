@@ -4,28 +4,28 @@
 
 `storage-kot` is a NixOS VM providing centralized NAS storage via Samba/CIFS
 and a FileBrowser web interface behind Authelia + LLDAP. It replaces local
-storage on jellyfin-kot and seedbox-kot with a shared `vda` disk hosted on the
-same Proxmox machine.
+storage on jellyfin-kot and seedbox-kot with a dedicated data disk.
 
 ## Why
 
 - Single storage host avoids media/download data duplication across VMs.
-- Existing `vda` disk (3.6T exFAT with live data) retained as-is.
-- exFAT cannot serve kernel NFS — Samba/CIFS provides cross-platform file
-  sharing without reformatting.
+- Data disk (`/dev/vda`, 3.6T, now ext4) holds live media and downloads.
+- Samba/CIFS provides cross-platform file sharing.
 - FileBrowser gives a web-based file manager for `/srv/nas`, protected by the
-  same Authelia SSO as other `*.theau.net` services.
+  same Authelia SSO as other `*.theau.net` services. A second Filebrowser
+  instance on `seedbox-kot` (`10.224.20.22:8082`) provides LAN-only access
+  without authentication.
 
 ## Design
 
 | Component | Details |
 |---|---|
-| OS | NixOS 25.11 on `/dev/sda` (32G) |
-| Data disk | `/dev/vda` (3.6T exFAT), mounted at `/srv/nas` |
+| OS | NixOS 25.11 |
+| Data disk | `/dev/vda` (3.6T ext4), mounted at `/srv/nas` |
 | Samba | `nas` (root), `jellyfin`, `downloads` shares, guest access |
 | FileBrowser | `10.8.0.23:8082`, proxy auth via `Remote-User` header from Authelia |
 | WireGuard | `10.8.0.23/32` to VPS hub (`82.165.20.195:51820`) |
-| LAN IP | `10.1.10.124/24` (management bridge, DHCP) + `10.224.20.10/24` (secondary) |
+| LAN IP | `10.224.20.10/24` (DHCP-managed) |
 | Firewall | TCP 22, 139, 445, 8082 |
 
 ## Alternatives considered
@@ -75,12 +75,12 @@ Every machine sees the same paths:
 
 | Machine | Mount | Via |
 |---|---|---|
-| storage-kot | `/srv/nas` | local exFAT disk |
-| jellyfin-kot | `/srv/nas` | CIFS `//10.1.10.124/nas` |
-| seedbox-kot | `/srv/nas` | CIFS `//10.1.10.124/nas` |
+| storage-kot | `/srv/nas` | local ext4 disk |
+| jellyfin-kot | `/srv/nas` | CIFS `//10.224.20.10/nas` |
+| seedbox-kot | `/srv/nas` | CIFS `//10.224.20.10/nas` |
 | VPS (sonarr/radarr) | `/srv/nas` | CIFS `//10.8.0.23/nas` |
 
-Jellyfin-kot and seedbox-kot use the management bridge IP (`10.1.10.124`) for
+Jellyfin-kot and seedbox-kot use the Kot LAN IP (`10.224.20.10`) for
 direct same-host throughput without WireGuard overhead. The VPS uses the
 WireGuard IP (`10.8.0.23`) since it's remote.
 
@@ -99,7 +99,7 @@ are owned by a single user.
 
 ### CIFS stability tuning
 
-exFAT + CIFS on a busy Proxmox bridge can experience socket stalls (observed
+ext4 + CIFS on a busy Proxmox bridge can experience socket stalls (observed
 in dmesg as "stuck for 15 seconds"). The following mount options mitigate this:
 
 - `hard` — retries I/O indefinitely instead of returning errors (default is
@@ -197,11 +197,10 @@ storage-kot:/srv/nas/               ← single source of truth
 ## Deployment
 
 - NixOS config: `hosts/storage-kot/default.nix`
-- Live config at `/etc/nixos/configuration.nix`
-- Admin user: `theau` with `~/.ssh/theau-vps-deploy` key
+- Admin user: `theau` with `theau-vps-deploy` SSH key
 - FileBrowser database: `/var/lib/filebrowser/database.db`
-- FileBrowser admin password auto-generated on first start (idempotent via
-  `systemd.services.filebrowser.preStart`)
+- WireGuard managed via `networking.wg-quick.interfaces.theau-vps`
+- Samba scoped to subnets: `10.8.0.0/24`, `10.224.20.0/24`, `10.1.10.0/24`, `127.0.0.0/8`
 
 ## Operation notes
 
@@ -211,7 +210,7 @@ storage-kot:/srv/nas/               ← single source of truth
 - qBittorrent `Session\DefaultSavePath` must be `/srv/nas/downloads` —
   enforced by seedbox module preStart.
 - The `nas` Samba share must be accessible from `10.8.0.0/24` (WireGuard)
-  for VPS access, and from `10.1.10.0/24` (management bridge) for VM access.
+  for VPS access, and from `10.224.20.0/24` (Kot LAN) for VM access.
 
 ## Troubleshooting
 

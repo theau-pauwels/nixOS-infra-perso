@@ -1,4 +1,4 @@
-{ modulesPath, ... }:
+{ modulesPath, pkgs, ... }:
 
 {
   imports = [
@@ -34,6 +34,7 @@
     allowedTCPPorts = [
       22
       8080
+      8082
     ];
   };
 
@@ -49,6 +50,28 @@
   };
 
   services.rpcbind.enable = false;
+
+  services.filebrowser = {
+    enable = true;
+    openFirewall = false;
+    settings = {
+      address = "0.0.0.0";
+      port = 8082;
+      root = "/srv/nas";
+      database = "/var/lib/filebrowser/database.db";
+    };
+  };
+
+  # Migrated database from storage-kot — switch from proxy auth to noauth for LAN access.
+  systemd.services.filebrowser.preStart = ''
+    if [ -f /var/lib/filebrowser/database.db ]; then
+      PATH=${pkgs.filebrowser}/bin:$PATH
+      filebrowser config set --auth.method=noauth --database /var/lib/filebrowser/database.db 2>/dev/null || true
+      filebrowser users update 1 --username=theau --perm.admin=true --database /var/lib/filebrowser/database.db 2>/dev/null || true
+    fi
+  '';
+
+  users.users.filebrowser.extraGroups = [ "users" ];
 
   personalInfra.services.prowlarr.enable = false;
   personalInfra.observability.exporters.enable = false;

@@ -6,14 +6,22 @@ This is the phase 2 and phase 2.5 declarative target for Kot media services.
 `jellyfin-kot` and `seedbox-kot` were deployed as fresh NixOS VMs on
 2026-04-30. `jellyseerr-kot` remains a declarative target only.
 
-Current deployed VMs:
+Current deployed VMs on the `10.224.20.0/24` subnet (DHCP-managed):
 
-- `jellyfin-kot`: `10.1.10.118`
-- `seedbox-kot`: `10.1.10.123`
+| VM | LAN IP | WireGuard IP | Role |
+|---|---|---|---|
+| `jellyfin-kot` | `10.224.20.21` | `10.8.0.21/32` | Jellyfin media server |
+| `seedbox-kot` | `10.224.20.22` | `10.8.0.22/32` (gluetun) | qBittorrent + gluetun + Filebrowser |
+| `storage-kot` | `10.224.20.10` | `10.8.0.23/32` | Samba NAS + Filebrowser |
 
-Both deployed VMs use UEFI `systemd-boot`, root label `nixos`, boot label
-`NIXBOOT`, NetworkManager, and the `theau-vps-deploy` SSH key for the `theau`
-admin account. The live installer password was used only to bootstrap the key.
+All deployed VMs use UEFI `systemd-boot`, root label `nixos`, boot label
+`NIXBOOT`, NetworkManager with DHCP, and the `theau-vps-deploy` SSH key for
+the `theau` admin account. The live installer password was used only to
+bootstrap the key.
+
+DNS is provided by `networking.nameservers = [ "10.224.20.1" ]` as a safety
+net in case DHCP does not supply nameservers (see
+[incident 2026-06-03](../incident/2026-06-03-kot-wireguard-clock-skew.md)).
 
 ## Context
 
@@ -49,19 +57,20 @@ The NixOS target separates service lifecycle and blast radius:
 Network shape:
 
 ```text
-IONOS-VPS2
+IONOS-VPS2 (82.165.20.195)
   |
-  | public/VPN SSO entrypoint
+  | WireGuard hub (10.8.0.1/24)
   v
-Authelia + LLDAP
-  |
-  | authenticated access
-  v
-Kot media VMs on Proxmox
-  |
   +-- jellyfin-kot:   Jellyfin, TCP 8096 via 10.8.0.21
   +-- seedbox-kot:    qBittorrent via gluetun, TCP 8080 via 10.8.0.22
-  +-- jellyseerr-kot: Jellyseerr, TCP 5055
+  |                   Filebrowser on LAN, TCP 8082 (noauth)
+  +-- storage-kot:    Samba NAS, Filebrowser, TCP 8082 via 10.8.0.23
+
+Kot LAN (10.224.20.0/24):
+  |
+  +-- storage-kot (10.224.20.10): Samba //10.224.20.10/nas
+  +-- jellyfin-kot (10.224.20.21): CIFS mount /srv/nas
+  +-- seedbox-kot  (10.224.20.22): CIFS mount /srv/nas, Filebrowser :8082
 ```
 
 Torrent egress:
@@ -103,26 +112,17 @@ Flake outputs:
 
 ## Storage Layout
 
-The deployed `jellyfin-kot` and `seedbox-kot` VMs currently use their root disk
-for service data because NAS-Kot is not available yet. Service data lives under
-`/srv`:
+All Kot VMs mount the shared Samba NAS from `storage-kot` at `/srv/nas` via
+CIFS. Service-specific data (Jellyfin config, seedbox container volumes) lives
+on local disks under `/srv`.
 
 ```text
-jellyfin-kot /srv/jellyfin
-seedbox-kot  /srv/seedbox
+storage-kot   /srv/nas  (local ext4 disk) — shared via Samba
+jellyfin-kot  /srv/nas  (CIFS mount //10.224.20.10/nas)
+              /srv/jellyfin (local root disk) — config, cache, data, logs
+seedbox-kot   /srv/nas  (CIFS mount //10.224.20.10/nas)
+              /srv/seedbox (local root disk) — container volumes
 ```
-
-Future NAS-backed mounts:
-
-```text
-jellyfin-kot   /srv/jellyfin    /dev/disk/by-label/jellyfin-data
-seedbox-kot    /srv/seedbox     /dev/disk/by-label/seedbox-data
-jellyseerr-kot /srv/jellyseerr  /dev/disk/by-label/jellyseerr-data
-```
-
-When NAS-Kot is ready, replace the root-disk service data with real NAS-Kot
-backed VM disks, virtio block devices, NFS mounts, or stable
-`/dev/disk/by-id/...` paths.
 
 ## Jellyfin
 
@@ -139,6 +139,45 @@ Jellyfin is exposed internally on `8096/tcp` and publicly through
 `https://jellyfin.theau.net`. The public route terminates TLS on `IONOS-VPS2`,
 uses Authelia/LLDAP group policy for `media-users`, `media-admins`, or
 `admins`, then proxies to `10.8.0.21:8096` over WireGuard.
+
+### Jellyfin CIFS write permissions
+
+Jellyfin runs as UID/GID 999. The CIFS mount at `/srv/nas` must set the
+correct ownership and force write permissions so Jellyfin can save downloaded
+subtitles next to media files:
+
+```nix
+fileSystems."/srv/nas" = {
+  device = "//10.224.20.10/nas";
+  fsType = "cifs";
+  options = [
+    "guest"
+    "uid=999"          # Jellyfin system user
+    "gid=999"
+    "forceuid"         # Force all files to appear owned by uid=999
+    "forcegid"
+    "file_mode=0664"
+    "dir_mode=0775"
+    "noperm"           # Skip local permission checks (CIFS with containers)
+    "hard"
+    "rsize=1048576"    # 1 MB I/O chunks
+    "wsize=1048576"
+    "echo_interval=15"
+    "actimeo=3"
+    "noacl"
+    "noserverino"
+    "nofail"
+    "_netdev"
+    "x-systemd.requires=network-online.target"
+    "cache=loose"
+    "vers=3.1.1"
+  ];
+};
+```
+
+Without `uid=999`, `forceuid`, `forcegid`, and `noperm`, Jellyfin cannot
+create or modify files on the CIFS share even if the Samba server allows guest
+writes.
 
 ### Jellyfin NVIDIA Passthrough
 
@@ -218,6 +257,47 @@ input ports.
 Do not put `10.8.0.0/24` in Gluetun `FIREWALL_OUTBOUND_SUBNETS`: Gluetun routes
 those outbound subnets over `eth0`, which breaks replies to the VPS WireGuard
 address `10.8.0.1`.
+
+### Filebrowser on seedbox-kot
+
+`seedbox-kot` runs Filebrowser on port `8082` rooted at `/srv/nas`, accessible
+from the Kot LAN (`10.224.0.0/16`) without authentication. The database was
+migrated from `storage-kot` to preserve existing share links.
+
+| Detail | Value |
+|---|---|
+| Port | `8082` (firewall: `allowedTCPPorts = [ ... 8082 ]`) |
+| Address | `0.0.0.0` (accessible from LAN) |
+| Auth | `noauth` (open to `10.224.0.0/16`) |
+| Root | `/srv/nas` |
+| Database | `/var/lib/filebrowser/database.db` (migrated from storage-kot) |
+
+```nix
+services.filebrowser = {
+  enable = true;
+  openFirewall = false;
+  settings = {
+    address = "0.0.0.0";
+    port = 8082;
+    root = "/srv/nas";
+    database = "/var/lib/filebrowser/database.db";
+  };
+};
+
+# Switch from storage-kot's proxy auth to noauth for LAN access.
+systemd.services.filebrowser.preStart = ''
+  if [ -f /var/lib/filebrowser/database.db ]; then
+    PATH=${pkgs.filebrowser}/bin:$PATH
+    filebrowser config set --auth.method=noauth --database /var/lib/filebrowser/database.db 2>/dev/null || true
+    filebrowser users update 1 --username=theau --perm.admin=true --database /var/lib/filebrowser/database.db 2>/dev/null || true
+  fi
+'';
+
+users.users.filebrowser.extraGroups = [ "users" ];
+```
+
+The `storage-kot` Filebrowser instance at `10.8.0.23:8082` continues to run
+with its existing proxy auth through Authelia.
 
 ## Jellyseerr
 
@@ -321,21 +401,37 @@ All machines mount `//storage-ip/nas` at a standard path:
 
 | Machine | Mount | Path |
 |---|---|---|
-| jellyfin-kot | `//10.1.10.124/nas` | `/srv/nas` |
-| seedbox-kot | `//10.1.10.124/nas` | `/srv/nas` |
+| jellyfin-kot | `//10.224.20.10/nas` | `/srv/nas` |
+| seedbox-kot | `//10.224.20.10/nas` | `/srv/nas` |
 | VPS (*arr) | `//10.8.0.23/nas` | `/data/media` |
 
 **jellyfin-kot** (`hosts/jellyfin-kot/default.nix`):
 
 ```nix
 fileSystems."/srv/nas" = {
-  device = "//10.1.10.124/nas";
+  device = "//10.224.20.10/nas";
   fsType = "cifs";
   options = [
-    "guest" "uid=1000" "gid=1000" "file_mode=0664" "dir_mode=0775"
-    "nofail" "_netdev"
-    "cache=loose" "actimeo=3" "noacl" "noserverino"
-    "rsize=4194304" "wsize=4194304" "vers=3.1.1"
+    "guest"
+    "uid=999"          # Jellyfin system user
+    "gid=999"
+    "forceuid"
+    "forcegid"
+    "file_mode=0664"
+    "dir_mode=0775"
+    "noperm"           # Required: Jellyfin writes need this
+    "hard"
+    "rsize=1048576"
+    "wsize=1048576"
+    "echo_interval=15"
+    "actimeo=3"
+    "noacl"
+    "noserverino"
+    "nofail"
+    "_netdev"
+    "x-systemd.requires=network-online.target"
+    "cache=loose"
+    "vers=3.1.1"
   ];
 };
 ```
@@ -346,7 +442,7 @@ Jellyfin library paths: `/srv/nas/jellyfin/movies/`, `/srv/nas/jellyfin/shows/`.
 
 ```nix
 fileSystems."/srv/nas" = {
-  device = "//10.1.10.124/nas";
+  device = "//10.224.20.10/nas";
   fsType = "cifs";
   options = [
     "guest" "uid=991" "gid=991" "file_mode=0664" "dir_mode=0775"
@@ -400,12 +496,10 @@ verified.
 
 ## TODO
 
-- Audit the current VM OS.
-- Define NAS-Kot backed storage layout.
 - Replace placeholder disk labels with real stable identifiers.
-- Decide whether shared media should use NFS, virtiofs, SMB, or block storage.
 - Pin OCI image digests for gluetun and qBittorrent.
 - Move WireGuard secret material into a SOPS-backed host secret workflow.
 - Configure Authelia OIDC clients for Jellyfin and Jellyseerr if supported by
   the chosen integration path.
-- Configure SMTP for user notifications without committing credentials.
+- Deploy `nixos-rebuild` for jellyfin-kot and seedbox-kot with current config changes.
+- Remove `storage-kot` Filebrowser instance once `seedbox-kot` Filebrowser is fully adopted.
