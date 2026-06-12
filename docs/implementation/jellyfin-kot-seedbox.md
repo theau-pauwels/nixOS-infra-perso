@@ -126,7 +126,8 @@ seedbox-kot   /srv/nas  (CIFS mount //10.224.20.10/nas)
 
 ## Jellyfin
 
-`jellyfin-kot` runs native NixOS Jellyfin:
+`jellyfin-kot` runs native NixOS Jellyfin 10.11.11 (nixpkgs 2026-06-10,
+NixOS 26.11).
 
 ```text
 /srv/jellyfin/cache
@@ -139,6 +140,17 @@ Jellyfin is exposed internally on `8096/tcp` and publicly through
 `https://jellyfin.theau.net`. The public route terminates TLS on `IONOS-VPS2`,
 uses Authelia/LLDAP group policy for `media-users`, `media-admins`, or
 `admins`, then proxies to `10.8.0.21:8096` over WireGuard.
+
+To update Jellyfin, update the nixpkgs input in `flake.nix` and run:
+
+```bash
+nix flake update nixpkgs
+nixos-rebuild boot --flake github:theau-pauwels/nixOS-infra-perso#jellyfin-kot
+sudo reboot
+```
+
+The `boot` action (instead of `switch`) is required when systemd or dbus
+changes across nixpkgs bumps.
 
 ### Jellyfin CIFS write permissions
 
@@ -501,5 +513,6 @@ verified.
 - Move WireGuard secret material into a SOPS-backed host secret workflow.
 - Configure Authelia OIDC clients for Jellyfin and Jellyseerr if supported by
   the chosen integration path.
-- Deploy `nixos-rebuild` for jellyfin-kot and seedbox-kot with current config changes.
+- Deploy `nixos-rebuild` for `seedbox-kot` with current config changes
+  (Filebrowser, nameserver). `jellyfin-kot` deployed 2026-06-13.
 - Remove `storage-kot` Filebrowser instance once `seedbox-kot` Filebrowser is fully adopted.
