@@ -1059,9 +1059,9 @@ ${portForwardRules}
   joalUnit = ''
     [Unit]
     Description=theau-vps JOAL
-    After=network-online.target theau-vps-wireguard.service mnt-storage\x2dkot\x2dnas.mount
-    Wants=network-online.target mnt-storage\x2dkot\x2dnas.mount
-    Requires=mnt-storage\x2dkot\x2dnas.mount
+    After=network-online.target theau-vps-wireguard.service srv-nas.mount
+    Wants=network-online.target srv-nas.mount
+    Requires=srv-nas.mount
 
     [Service]
     Type=simple
@@ -1072,7 +1072,7 @@ ${portForwardRules}
       --dns 1.1.1.1 \
       -v /opt/theau-vps/state/joal:/data \
       -v /opt/joal-patched.jar:/joal/joal.jar:ro \
-      -v /mnt/storage-kot-nas/torrents/joal:/data/torrents:shared \
+      -v /srv/nas/torrents/joal:/data/torrents:shared \
       anthonyraymond/joal:latest \
       --joal-conf=/data \
       --spring.main.web-environment=true \
@@ -1324,15 +1324,15 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   ${joalUnit}
   EOF
 
-  cat > "$out/share/theau-vps/systemd/mnt-storage\x2dkot\x2dnas.mount" <<'EOF'
+  cat > "$out/share/theau-vps/systemd/srv-nas.mount" <<'EOF'
   [Unit]
-  Description=Mount storage-kot NAS for *arr services and JOAL
+  Description=Mount storage-kot NAS at /srv/nas for *arr services and JOAL
   After=network-online.target theau-vps-wireguard.service
   Wants=network-online.target theau-vps-wireguard.service
 
   [Mount]
   What=//10.8.0.23/nas
-  Where=/mnt/storage-kot-nas
+  Where=/srv/nas
   Type=cifs
   Options=guest,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,noperm,vers=3.1.1,_netdev
 
