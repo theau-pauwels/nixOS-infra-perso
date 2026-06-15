@@ -1326,15 +1326,15 @@ pkgs.runCommand "theau-vps-bundle" { } ''
 
   cat > "$out/share/theau-vps/systemd/mnt-storage\x2dkot\x2dnas.mount" <<'EOF'
   [Unit]
-  Description=Mount storage-kot NAS
+  Description=Mount storage-kot NAS for *arr services and JOAL
   After=network-online.target theau-vps-wireguard.service
-  Wants=network-online.target
+  Wants=network-online.target theau-vps-wireguard.service
 
   [Mount]
   What=//10.8.0.23/nas
   Where=/mnt/storage-kot-nas
   Type=cifs
-  Options=guest,uid=0,gid=0,vers=3.1.1,_netdev
+  Options=guest,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,noperm,vers=3.1.1,_netdev
 
   [Install]
   WantedBy=multi-user.target

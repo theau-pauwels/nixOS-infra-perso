@@ -598,6 +598,8 @@ access_control:
         - group:infra-admins
         - group:admins
 session:
+  expiration: 30d
+  inactivity: 7d
   cookies:
     - domain: theau.net
       authelia_url: https://${AUTHELIA_DOMAIN}
