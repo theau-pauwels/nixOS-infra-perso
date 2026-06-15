@@ -26,14 +26,29 @@ Current target facts:
 
 ## Current Deployment Snapshot
 
-As of 2026-04-30, `IONOS-VPS2-DEPLOY` is running:
+As of 2026-06-16, `IONOS-VPS2-DEPLOY` is running:
 
 - active bundle: `/nix/store/wxhrrifyxhc13qrxv5vxf4lmiazxyzyl-theau-vps-bundle`
+  (note: rebuilt bundle `/nix/store/lrs5jb...-theau-vps-bundle` available,
+  not yet pushed — includes SignalR bypass, CIFS mount at `/srv/nas`,
+  Authelia session expiry fix)
 - active generation: `/opt/theau-vps/generations/20260430134153`
 - `theau-net-services` certificate expiry: 2026-07-29
 - certificate SANs include `authelia.theau.net`, `coolify.theau.net`,
   `file.theau.net`, `jellyfin.theau.net`, `prowlarr.theau.net`,
   `qbit.theau.net`, `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
+
+CIFS mount (`srv-nas.mount`):
+- Source: `//10.8.0.23/nas` (storage-kot via WireGuard)
+- Mount: `/srv/nas`
+- Options: `guest,uid=1000,gid=1000,forceuid,forcegid,file_mode=0664,dir_mode=0775,noperm,vers=3.1.1,_netdev`
+
+Authelia session:
+- Expiration: 30d (previously default 1h)
+- Inactivity: 7d (previously default 5min)
+
+SignalR bypass: `/signalr/` paths on *arr services bypass Authelia auth
+(WebSocket connections use API key auth, not session cookies).
 
 The deployed service edge behavior was verified from outside the VPS:
 

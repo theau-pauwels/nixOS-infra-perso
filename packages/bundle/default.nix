@@ -230,6 +230,14 @@ ${portForwardRules}
   autheliaProtectedLocation = upstream: ''
     ${autheliaAuthLocation}
 
+    # SignalR WebSocket — bypass Authelia, uses API key auth
+    location /signalr/ {
+      ${proxyHeaders}
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      proxy_pass ${upstream};
+    }
+
     location / {
       auth_request /internal/authelia/authz;
       auth_request_set $redirection_url $upstream_http_location;
