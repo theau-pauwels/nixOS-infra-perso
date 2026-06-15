@@ -28,11 +28,9 @@ Current target facts:
 
 As of 2026-06-16, `IONOS-VPS2-DEPLOY` is running:
 
-- active bundle: `/nix/store/wxhrrifyxhc13qrxv5vxf4lmiazxyzyl-theau-vps-bundle`
-  (note: rebuilt bundle `/nix/store/lrs5jb...-theau-vps-bundle` available,
-  not yet pushed — includes SignalR bypass, CIFS mount at `/srv/nas`,
-  Authelia session expiry fix)
-- active generation: `/opt/theau-vps/generations/20260430134153`
+- active bundle: `/nix/store/izzf39s15f3yiwfv8qq75h80dwrrpdfk-theau-vps-bundle`
+- active generation: `/opt/theau-vps/generations/20260616010227`
+- nixpkgs: 2026-06-10 (NixOS 26.11), nginx 1.30.2
 - `theau-net-services` certificate expiry: 2026-07-29
 - certificate SANs include `authelia.theau.net`, `coolify.theau.net`,
   `file.theau.net`, `jellyfin.theau.net`, `prowlarr.theau.net`,
@@ -49,6 +47,10 @@ Authelia session:
 
 SignalR bypass: `/signalr/` paths on *arr services bypass Authelia auth
 (WebSocket connections use API key auth, not session cookies).
+
+nginx note: version 1.30.2 strictly rejects duplicate `proxy_http_version`
+directives that 1.28.3 tolerated. Ensure `proxyHeaders` is only included once
+per location block when extending nginx configs.
 
 The deployed service edge behavior was verified from outside the VPS:
 
@@ -242,6 +244,7 @@ The current services are mapped to source files as follows:
 | iperf3 | `hostSpec.iperf3` | `theau-vps-iperf3.service` |
 | certbot renewal | `hostSpec.domain`, `hostSpec.acmeEmail`, bundle certbot package | `theau-vps-certbot-renew.service`, `theau-vps-certbot-renew.timer` |
 | RustDesk OSS | `hostSpec.rustdesk`, `pkgs.rustdesk-server` | `/var/lib/rustdesk-server`, `theau-vps-rustdesk-hbbs.service`, `theau-vps-rustdesk-hbbr.service` |
+| CIFS NAS mount | `packages/bundle/default.nix` | `/etc/systemd/system/srv-nas.mount` — mounts `//10.8.0.23/nas` at `/srv/nas` |
 | Host identity | `hostSpec.hostname`, `hostSpec.timezone` | `hostnamectl`, `timedatectl`, `/etc/hosts` update |
 
 ## Runtime Services
@@ -287,6 +290,40 @@ Activation selects the site config dynamically:
 
 Both modes keep the ACME webroot at `/var/lib/theau-vps/acme-challenge`.
 The proxied app is WGDashboard on `127.0.0.1:10086`.
+
+Service domains are proxied through `theau-net-services.conf`. Each *arr
+service has a `/signalr/` location that bypasses Authelia auth (SignalR
+WebSocket connections use API key auth, not session cookies).
+
+**nginx version note**: nginx 1.30.2 (from nixpkgs 2026-06-10) strictly
+rejects duplicate `proxy_http_version` directives. Ensure `proxyHeaders` is
+only included once per location block. The `proxyHeaders` variable already
+includes `proxy_http_version`, `Upgrade`, and `Connection` headers — do not
+add them again in WebSocket bypass blocks.
+
+### CIFS NAS mount
+
+The `srv-nas.mount` systemd unit mounts `storage-kot`'s Samba share at
+`/srv/nas` via WireGuard:
+
+- Source: `//10.8.0.23/nas`
+- Options: `guest,uid=1000,gid=1000,forceuid,forcegid,file_mode=0664,dir_mode=0775,noperm,vers=3.1.1,_netdev`
+- Dependencies: `theau-vps-wireguard.service`, `network-online.target`
+
+The mount is used by the *arr services (Sonarr, Radarr, Lidarr) for media
+library access, and by JOAL for torrent file watching.
+
+### Authelia
+
+Authelia runs at `127.0.0.1:9091` and provides SSO for all `*.theau.net`
+services via LLDAP. Session configuration:
+
+- Expiration: `30d`
+- Inactivity: `7d`
+- Cookie domain: `theau.net`
+
+Previously, the defaults of 1h expiration and 5min inactivity caused frequent
+unexpected logouts. Configured via `deploy/activate-generation.sh`.
 
 ### Firewall
 
