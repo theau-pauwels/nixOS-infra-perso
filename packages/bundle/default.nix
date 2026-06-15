@@ -1334,7 +1334,7 @@ pkgs.runCommand "theau-vps-bundle" { } ''
   What=//10.8.0.23/nas
   Where=/srv/nas
   Type=cifs
-  Options=guest,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,noperm,vers=3.1.1,_netdev
+  Options=guest,uid=1000,gid=1000,forceuid,forcegid,file_mode=0664,dir_mode=0775,noperm,vers=3.1.1,_netdev
 
   [Install]
   WantedBy=multi-user.target

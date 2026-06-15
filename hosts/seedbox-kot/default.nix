@@ -118,6 +118,8 @@
       "guest"
       "uid=991"
       "gid=991"
+      "forceuid"
+      "forcegid"
       "file_mode=0664"
       "dir_mode=0775"
       "noperm"
