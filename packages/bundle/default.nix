@@ -233,8 +233,6 @@ ${portForwardRules}
     # SignalR WebSocket — bypass Authelia, uses API key auth
     location /signalr/ {
       ${proxyHeaders}
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection "upgrade";
       proxy_pass ${upstream};
     }
 
