@@ -34,20 +34,21 @@ systemd oneshot service (`jellyfin-ldap-plugin.service`).
 
 ### Initial setup
 
-After first deployment, configure the LDAP bind password:
+After first deployment, configure the LDAP bind password in Jellyfin:
 
 1. Go to `https://jellyfin.theau.net` → Authelia login
 2. Jellyfin Dashboard → Plugins → LDAP Auth → Settings
-3. Set **LDAP Bind Password** (the LLDAP admin password from the VPS:
-   `/opt/theau-vps/state/lldap/admin-password`)
-4. Save
+3. Set **LDAP Bind Password** to the LLDAP admin password
+4. Save and restart Jellyfin
 
 All other LDAP settings are pre-configured:
 - Server: `10.8.0.1`, port `3890`
 - Base DN: `dc=theau,dc=net`
-- Search filter: `(uid={0})`
-- Admin filter: `(memberOf=cn=admins,ou=groups,dc=theau,dc=net)`
+- Search filter: `(objectClass=person)`
+- Search attributes: `uid, cn, mail, displayName`
+- UID attribute: `uid`
 - Username attribute: `uid`
+- Admin filter: `(memberOf=cn=admins,ou=groups,dc=theau,dc=net)`
 - Create users from LDAP: enabled
 
 ### User provisioning
