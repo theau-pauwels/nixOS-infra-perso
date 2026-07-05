@@ -19,14 +19,14 @@ let
       <LdapServer>10.8.0.1</LdapServer>
       <LdapPort>3890</LdapPort>
       <LdapBaseDn>dc=theau,dc=net</LdapBaseDn>
-      <LdapSearchFilter>(uid={username})</LdapSearchFilter>
+      <LdapSearchFilter>(objectClass=person)</LdapSearchFilter>
       <LdapAdminBaseDn />
       <LdapAdminFilter>(memberOf=cn=admins,ou=groups,dc=theau,dc=net)</LdapAdminFilter>
       <LdapBindUser>uid=theau,ou=people,dc=theau,dc=net</LdapBindUser>
       <LdapBindPassword>CHANGE_ME_VIA_WEBUI</LdapBindPassword>
       <LdapSearchAttributes>uid, cn, mail, displayName</LdapSearchAttributes>
       <LdapUidAttribute>uid</LdapUidAttribute>
-      <LdapUsernameAttribute>cn</LdapUsernameAttribute>
+      <LdapUsernameAttribute>uid</LdapUsernameAttribute>
       <CreateUsersFromLdap>true</CreateUsersFromLdap>
       <UseSsl>false</UseSsl>
       <UseStartTls>false</UseStartTls>
