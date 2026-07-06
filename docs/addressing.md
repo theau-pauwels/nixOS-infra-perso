@@ -50,6 +50,13 @@ renumbered without a separate migration.
 - guests: `10.224.50.0/24`
 - management: `10.224.60.0/24`
 
+#### Kot Management Static Addresses
+
+| Address | Device | Notes |
+| --- | --- | --- |
+| `10.224.60.1` | Kot management gateway | pfSense or site gateway address for VLAN 60 |
+| `10.224.60.38` | HP server iLO | Static iLO management address; gateway `10.224.60.1`; keep iLO VLAN disabled when connected to an untagged/access management port |
+
 ### Mom
 
 - LAN: `10.10.10.0/24`
