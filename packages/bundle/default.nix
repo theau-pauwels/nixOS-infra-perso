@@ -612,24 +612,6 @@ ${portForwardRules}
       add_header X-Content-Type-Options nosniff always;
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
-      ${autheliaAuthLocation}
-
-      location /web/ {
-        auth_request /internal/authelia/authz;
-        auth_request_set $redirection_url $upstream_http_location;
-        error_page 401 =302 $redirection_url;
-        auth_request_set $user $upstream_http_remote_user;
-        auth_request_set $groups $upstream_http_remote_groups;
-        auth_request_set $name $upstream_http_remote_name;
-        auth_request_set $email $upstream_http_remote_email;
-        proxy_set_header Remote-User $user;
-        proxy_set_header Remote-Groups $groups;
-        proxy_set_header Remote-Name $name;
-        proxy_set_header Remote-Email $email;
-        ${proxyHeaders}
-        proxy_pass http://10.8.0.21:8096;
-      }
-
       location = / {
         return 302 /web/;
       }
@@ -683,7 +665,10 @@ ${portForwardRules}
       add_header X-Content-Type-Options nosniff always;
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
-      ${autheliaProtectedLocation "http://127.0.0.1:5055"}
+      location / {
+        ${proxyHeaders}
+        proxy_pass http://127.0.0.1:5055;
+      }
     }
 
     server {
