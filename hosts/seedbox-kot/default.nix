@@ -42,10 +42,10 @@
     enable = true;
     dataRoot = "/srv/seedbox";
     gluetun = {
-      endpointIp = "82.165.20.195";
-      endpointPort = 51820;
-      tunnelAddress = "10.8.0.22/32";
-      environmentFile = "/var/lib/seedbox/gluetun/ionos-vps2-wireguard.env";
+      endpointIp = "86.106.84.164";
+      endpointPort = 1637;
+      tunnelAddress = "10.153.197.173/32";
+      environmentFile = "/var/lib/seedbox/gluetun/airvpn-swiss-wireguard.env";
     };
   };
 
