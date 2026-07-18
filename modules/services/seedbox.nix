@@ -76,6 +76,12 @@ in
         ];
         description = "Subnets allowed through gluetun firewall for LAN/VPN access to qBittorrent.";
       };
+
+      wgConfigFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = "Optional WireGuard config file to mount at /gluetun/wireguard/wg0.conf. When set, overrides endpoint/address env vars.";
+      };
     };
 
     qbittorrent = {
@@ -125,29 +131,38 @@ in
           autoStart = true;
           capabilities.NET_ADMIN = true;
           devices = [ "/dev/net/tun:/dev/net/tun" ];
-          environment = {
-            VPN_SERVICE_PROVIDER = "custom";
-            VPN_TYPE = "wireguard";
-            WIREGUARD_ENDPOINT_IP = cfg.gluetun.endpointIp;
-            WIREGUARD_ENDPOINT_PORT = toString cfg.gluetun.endpointPort;
-            WIREGUARD_ADDRESSES = cfg.gluetun.tunnelAddress;
-            FIREWALL = "on";
-            FIREWALL_VPN_INPUT_PORTS = lib.concatStringsSep "," [
-              (toString cfg.qbittorrent.webuiPort)
-              (toString cfg.qbittorrent.torrentPort)
-            ];
-            FIREWALL_OUTBOUND_SUBNETS = lib.concatStringsSep "," cfg.gluetun.allowedOutboundSubnets;
-            TZ = config.time.timeZone;
-          };
-          environmentFiles = [ cfg.gluetun.environmentFile ];
+          environment =
+            {
+              VPN_SERVICE_PROVIDER = "custom";
+              VPN_TYPE = "wireguard";
+              FIREWALL = "on";
+              FIREWALL_VPN_INPUT_PORTS = lib.concatStringsSep "," [
+                (toString cfg.qbittorrent.webuiPort)
+                (toString cfg.qbittorrent.torrentPort)
+              ];
+              FIREWALL_OUTBOUND_SUBNETS = lib.concatStringsSep "," cfg.gluetun.allowedOutboundSubnets;
+              TZ = config.time.timeZone;
+            }
+            // (if cfg.gluetun.wgConfigFile != null then {
+              VPN_ENDPOINT_PORT = toString cfg.gluetun.endpointPort;
+              WIREGUARD_ALLOWED_IPS = "0.0.0.0/0";
+            } else {
+              WIREGUARD_ENDPOINT_IP = cfg.gluetun.endpointIp;
+              WIREGUARD_ENDPOINT_PORT = toString cfg.gluetun.endpointPort;
+              WIREGUARD_ADDRESSES = cfg.gluetun.tunnelAddress;
+            });
+          environmentFiles =
+            if cfg.gluetun.wgConfigFile != null then [ ] else [ cfg.gluetun.environmentFile ];
           ports = [
             "${toString cfg.qbittorrent.webuiPort}:${toString cfg.qbittorrent.webuiPort}/tcp"
             "${toString cfg.qbittorrent.torrentPort}:${toString cfg.qbittorrent.torrentPort}/tcp"
             "${toString cfg.qbittorrent.torrentPort}:${toString cfg.qbittorrent.torrentPort}/udp"
           ];
-          volumes = [
-            "${cfg.dataRoot}/gluetun:/gluetun"
-          ];
+          volumes =
+            [ "${cfg.dataRoot}/gluetun:/gluetun" ]
+            ++ (lib.optionals (cfg.gluetun.wgConfigFile != null) [
+              "${cfg.gluetun.wgConfigFile}:/gluetun/wireguard/wg0.conf:ro"
+            ]);
           extraOptions = [
             "--pull=missing"
           ];
