@@ -644,7 +644,10 @@ ${portForwardRules}
       add_header X-Content-Type-Options nosniff always;
       add_header Referrer-Policy no-referrer-when-downgrade always;
 
-      ${autheliaProtectedLocation "http://10.8.0.22:8080"}
+      location / {
+        ${proxyHeaders}
+        proxy_pass http://10.8.0.22:8080;
+      }
     }
 
     server {

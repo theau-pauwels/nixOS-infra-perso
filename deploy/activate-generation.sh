@@ -549,12 +549,6 @@ access_control:
         - group:musicseerr
         - group:musicseerr-admin
         - group:admins
-    - domain: ${QBIT_DOMAIN}
-      policy: one_factor
-      subject:
-        - group:qbit
-        - group:qbit-admin
-        - group:admins
     - domain: ${JOAL_DOMAIN}
       policy: two_factor
       subject:
