@@ -264,10 +264,9 @@ The seedbox containers are gated by this file. Until it exists,
 skipped instead of starting with incomplete VPN credentials.
 
 qBittorrent is accessible locally on seedbox-kot at `localhost:8080` (via the
-gluetun network namespace). On the VPS, `https://qbit.theau.net` proxies
-without Authelia auth (auth was removed 2026-07-23). The VPS proxy is
-effectively broken until split DNS routes `qbit.theau.net` directly to the
-Kot public IP.
+gluetun network namespace). `https://qbit.theau.net` resolves to the Kot public
+IP, where Kot nginx proxies to `seedbox-kot:8080`. There is no VPS or Authelia
+hop; qBittorrent's native WebUI login protects the service.
 
 ### Filebrowser on seedbox-kot
 
@@ -476,16 +475,29 @@ causing "Permission denied" on file creation.
 
 ### qBittorrent reverse proxy auth
 
-qBittorrent v5.1.x uses `bypass_auth_subnet_whitelist` (stored as
-`WebUI\AuthSubnetWhitelist` in the INI config) to skip its own authentication
-for requests from the VPS WireGuard IP (`10.8.0.1`). The seedbox module
-preStart writes this on first config creation.
+Kot nginx proxies `qbit.theau.net` directly to `seedbox-kot:8080`.
+qBittorrent's native WebUI credentials are required.
 
-If qBittorrent shows "Unauthorized" after Authelia login, check:
-- qBittorrent container is running (`systemctl status podman-seedbox-qbittorrent`)
-- `WebUI\AuthSubnetWhitelist=10.8.0.0/24` in the qBittorrent config
-- `WebUI\AuthSubnetWhitelistEnabled=true`
-- VPS can reach qBittorrent: `curl -sI http://10.8.0.22:8080/` should return 200
+To reset a lost WebUI login:
+
+```bash
+sudo systemctl stop podman-seedbox-qbittorrent.service
+cfg=/srv/seedbox/qbittorrent/config/qBittorrent/qBittorrent.conf
+sudo cp "$cfg" "$cfg.backup"
+sudo sed -i '/^WebUI\\Username=/d; /^WebUI\\Password_PBKDF2=/d' "$cfg"
+sudo systemctl start podman-seedbox-qbittorrent.service
+sudo journalctl -u podman-seedbox-qbittorrent.service -n 100 --no-pager \
+  | grep -i 'temporary password'
+```
+
+Log in as `admin` with the temporary password, then immediately set the
+intended username and a strong password under **Tools → Options → Web UI**.
+
+If the WebUI is unavailable, check:
+
+- qBittorrent is running: `systemctl status podman-seedbox-qbittorrent`
+- local access works: `curl -sI http://127.0.0.1:8080/`
+- Kot nginx can reach `seedbox-kot:8080`
 
 ## Rollback
 

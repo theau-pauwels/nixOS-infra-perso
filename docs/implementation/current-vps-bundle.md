@@ -38,7 +38,7 @@ As of 2026-07-23, `IONOS-VPS2-DEPLOY` is running:
 |---|---|---|
 | jellyfin.theau.net | Direct | Jellyfin handles its own login |
 | seer.theau.net | Direct | Seerr handles its own login |
-| qbit.theau.net | Direct | 502 from VPS — seedbox on AirVPN, needs Kot nginx |
+| qbit.theau.net | Direct | Kot nginx proxies to seedbox-kot; qBittorrent handles login |
 | sonarr/radarr/lidarr | Authelia | SignalR /signalr/ bypasses auth |
 | prowlarr/joal/wg/users | Authelia 2FA | |
 | file.theau.net | Authelia | Proxy to storage-kot :8082 |
@@ -61,6 +61,7 @@ directives. Ensure `proxyHeaders` is only included once per location block.
 - gluetun: AirVPN Switzerland (`86.106.84.164:47107`, IPv4-only)
 - Config: `/var/lib/seedbox/gluetun/wg0.conf` (local file, chmod 600)
 - qBittorrent: localhost:8080, torrent port 6881
+- `qbit.theau.net`: served directly through Kot nginx; native qBittorrent login
 
 The deployed service edge behavior was verified from outside the VPS:
 
