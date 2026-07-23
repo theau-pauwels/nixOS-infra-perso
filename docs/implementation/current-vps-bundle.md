@@ -26,15 +26,22 @@ Current target facts:
 
 ## Current Deployment Snapshot
 
-As of 2026-06-16, `IONOS-VPS2-DEPLOY` is running:
+As of 2026-07-23, `IONOS-VPS2-DEPLOY` is running:
 
-- active bundle: `/nix/store/izzf39s15f3yiwfv8qq75h80dwrrpdfk-theau-vps-bundle`
-- active generation: `/opt/theau-vps/generations/20260616010227`
+- active generation: `20260723205902`
 - nixpkgs: 2026-06-10 (NixOS 26.11), nginx 1.30.2
 - `theau-net-services` certificate expiry: 2026-07-29
-- certificate SANs include `authelia.theau.net`, `coolify.theau.net`,
-  `file.theau.net`, `jellyfin.theau.net`, `prowlarr.theau.net`,
-  `qbit.theau.net`, `seer.theau.net`, `users.theau.net`, and `wg.theau.net`
+
+### Service auth status
+
+| Service | Auth | Notes |
+|---|---|---|
+| jellyfin.theau.net | Direct | Jellyfin handles its own login |
+| seer.theau.net | Direct | Seerr handles its own login |
+| qbit.theau.net | Direct | 502 from VPS — seedbox on AirVPN, needs Kot nginx |
+| sonarr/radarr/lidarr | Authelia | SignalR /signalr/ bypasses auth |
+| prowlarr/joal/wg/users | Authelia 2FA | |
+| file.theau.net | Authelia | Proxy to storage-kot :8082 |
 
 CIFS mount (`srv-nas.mount`):
 - Source: `//10.8.0.23/nas` (storage-kot via WireGuard)
@@ -42,15 +49,18 @@ CIFS mount (`srv-nas.mount`):
 - Options: `guest,uid=1000,gid=1000,forceuid,forcegid,file_mode=0664,dir_mode=0775,noperm,vers=3.1.1,_netdev`
 
 Authelia session:
-- Expiration: 30d (previously default 1h)
-- Inactivity: 7d (previously default 5min)
+- Expiration: 30d | Inactivity: 7d
 
-SignalR bypass: `/signalr/` paths on *arr services bypass Authelia auth
-(WebSocket connections use API key auth, not session cookies).
+SignalR bypass: `/signalr/` paths on *arr services bypass Authelia auth.
 
 nginx note: version 1.30.2 strictly rejects duplicate `proxy_http_version`
-directives that 1.28.3 tolerated. Ensure `proxyHeaders` is only included once
-per location block when extending nginx configs.
+directives. Ensure `proxyHeaders` is only included once per location block.
+
+### Seedbox (seedbox-kot)
+
+- gluetun: AirVPN Switzerland (`86.106.84.164:47107`, IPv4-only)
+- Config: `/var/lib/seedbox/gluetun/wg0.conf` (local file, chmod 600)
+- qBittorrent: localhost:8080, torrent port 6881
 
 The deployed service edge behavior was verified from outside the VPS:
 

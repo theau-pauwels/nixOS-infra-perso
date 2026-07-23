@@ -36,14 +36,19 @@ Target VMs:
 - `seedbox-kot`: qBittorrent plus gluetun only
 - `jellyseerr-kot`: Jellyseerr only
 
-The current torrent privacy path exits through the WireGuard endpoint on
-`IONOS-VPS2` in Germany:
+The current torrent privacy path exits through AirVPN Switzerland:
 
-- endpoint IP: `82.165.20.195`
-- endpoint port: `51820/udp`
-- legacy qBittorrent peer address: `10.8.0.20/32`
-- Jellyfin ingress peer address: `10.8.0.21/32`
-- seedbox-kot Gluetun peer address: `10.8.0.22/32`
+| Config | Value |
+|---|---|
+| Provider | AirVPN (custom WireGuard) |
+| Endpoint | `86.106.84.164:47107` |
+| Tunnel address | `10.135.156.202/32` (IPv4-only) |
+| Config file | `/var/lib/seedbox/gluetun/wg0.conf` (local, chmod 600) |
+| Jellyfin ingress | `10.8.0.21/32` (VPS WireGuard) |
+
+The AirVPN config is managed as a local file outside the Nix store, referenced
+by `wgConfigFile` in the seedbox module. The private key must never be
+committed.
 
 ## Design
 
@@ -62,8 +67,6 @@ IONOS-VPS2 (82.165.20.195)
   | WireGuard hub (10.8.0.1/24)
   v
   +-- jellyfin-kot:   Jellyfin, TCP 8096 via 10.8.0.21
-  +-- seedbox-kot:    qBittorrent via gluetun, TCP 8080 via 10.8.0.22
-  |                   Filebrowser on LAN, TCP 8082 (noauth)
   +-- storage-kot:    Samba NAS, Filebrowser, TCP 8082 via 10.8.0.23
 
 Kot LAN (10.224.20.0/24):
@@ -71,6 +74,7 @@ Kot LAN (10.224.20.0/24):
   +-- storage-kot (10.224.20.10): Samba //10.224.20.10/nas
   +-- jellyfin-kot (10.224.20.21): CIFS mount /srv/nas
   +-- seedbox-kot  (10.224.20.22): CIFS mount /srv/nas, Filebrowser :8082
+  |                                qBittorrent via gluetun (AirVPN)
 ```
 
 Torrent egress:
@@ -84,7 +88,7 @@ seedbox-kot gluetun container
   |
   | WireGuard
   v
-IONOS-VPS2 Germany
+AirVPN Switzerland (86.106.84.164:47107)
 ```
 
 qBittorrent does not get its own independent network namespace. If gluetun is
@@ -259,16 +263,11 @@ The seedbox containers are gated by this file. Until it exists,
 `podman-seedbox-gluetun.service` and `podman-seedbox-qbittorrent.service` are
 skipped instead of starting with incomplete VPN credentials.
 
-qBittorrent is exposed publicly through `https://qbit.theau.net`. The public
-route terminates TLS on `IONOS-VPS2`, uses Authelia/LLDAP group policy for
-`media-admins` or `admins`, then proxies to `10.8.0.22:8080` over the seedbox
-Gluetun WireGuard interface. The Gluetun firewall must allow both the
-qBittorrent WebUI port `8080/tcp` and the torrent port `6881/tcp+udp` as VPN
-input ports.
-
-Do not put `10.8.0.0/24` in Gluetun `FIREWALL_OUTBOUND_SUBNETS`: Gluetun routes
-those outbound subnets over `eth0`, which breaks replies to the VPS WireGuard
-address `10.8.0.1`.
+qBittorrent is accessible locally on seedbox-kot at `localhost:8080` (via the
+gluetun network namespace). On the VPS, `https://qbit.theau.net` proxies
+without Authelia auth (auth was removed 2026-07-23). The VPS proxy is
+effectively broken until split DNS routes `qbit.theau.net` directly to the
+Kot public IP.
 
 ### Filebrowser on seedbox-kot
 
