@@ -67,9 +67,40 @@ in
     enable = true;
     allowedTCPPorts = [
       22
+      443
       8096
     ];
   };
+
+  # Kot-side reverse proxy for qBittorrent (direct LAN access, no VPS hop)
+  # TODO: replace self-signed certs with real ones (certbot + DNS challenge or copy from VPS)
+  services.nginx = {
+    enable = true;
+    recommendedProxySettings = true;
+    virtualHosts."qbit.theau.net" = {
+      forceSSL = true;
+      sslCertificate = "/etc/ssl/qbit.theau.net/fullchain.pem";
+      sslCertificateKey = "/etc/ssl/qbit.theau.net/privkey.pem";
+      locations."/" = {
+        proxyPass = "http://10.224.20.22:8080";
+        proxyWebsockets = true;
+      };
+      locations."/signalr/" = {
+        proxyPass = "http://10.224.20.22:8080";
+        proxyWebsockets = true;
+      };
+    };
+  };
+
+  systemd.services.nginx.preStart = ''
+    if [ ! -f /etc/ssl/qbit.theau.net/fullchain.pem ]; then
+      mkdir -p /etc/ssl/qbit.theau.net
+      ${pkgs.openssl}/bin/openssl req -x509 -nodes -days 90 \
+        -subj "/CN=qbit.theau.net" \
+        -keyout /etc/ssl/qbit.theau.net/privkey.pem \
+        -out /etc/ssl/qbit.theau.net/fullchain.pem
+    fi
+  '';
 
   networking.wg-quick.interfaces.theau-vps = {
     address = [ "10.8.0.21/32" ];
